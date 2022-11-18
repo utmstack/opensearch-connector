@@ -9,9 +9,13 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.InlineScript;
+import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.UpdateByQueryRequest;
+import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 
@@ -23,10 +27,14 @@ public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
     private final OpenSearchClient client;
 
+    private OpenSearch(OpenSearchClient client) {
+        this.client = client;
+    }
+
     /**
      * Perform a search operation
      *
-     * @param query        Query to executed
+     * @param query        Query to be executed
      * @param index        Index were the search will be performed, you can use a pattern too
      * @param responseType Type of the object that will be mapped in the response
      * @return A {@link SearchResponse} object with the results of the performed search
@@ -34,19 +42,39 @@ public class OpenSearch {
     public <T> SearchResponse<T> search(Query query, String index, Class<T> responseType) {
         final String ctx = CLASSNAME + ".search";
         try {
-            return client.search(new SearchRequest.Builder().index(index)
-                    .query(query).build(), responseType);
+            return client.search(new SearchRequest.Builder()
+                    .index(index)
+                    .query(query)
+                    .build(), responseType);
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
-    private OpenSearch(OpenSearchClient client) {
-        this.client = client;
-    }
-
-    public OpenSearchClient getClient() {
-        return client;
+    /**
+     * Perform an update by query operation
+     *
+     * @param query  Query to be executed
+     * @param index  Index were the search will be performed, you can use a pattern too
+     * @param script Script that perform the update
+     */
+    public UpdateByQueryResponse updateByQuery(Query query, String index, String script) {
+        final String ctx = CLASSNAME + ".updateByQuery";
+        try {
+            return client.updateByQuery(new UpdateByQueryRequest.Builder()
+                    .index(index)
+                    .query(query)
+                    .script(new Script.Builder()
+                            .inline(new InlineScript.Builder()
+                                    .lang("painless")
+                                    .source(script)
+                                    .build())
+                            .build())
+                    .refresh(true)
+                    .build());
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
     }
 
     public static Builder builder() {
