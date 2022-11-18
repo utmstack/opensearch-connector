@@ -1,4 +1,4 @@
-package com.atlasinside.opensearch.types.enums;
+package com.atlasinside.opensearch.enums;
 
 public enum HttpHostScheme {
     http,

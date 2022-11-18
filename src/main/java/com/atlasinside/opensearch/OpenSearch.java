@@ -1,27 +1,32 @@
 package com.atlasinside.opensearch;
 
-import com.atlasinside.opensearch.types.enums.HttpHostScheme;
+import com.atlasinside.opensearch.enums.HttpHostScheme;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.SSLContexts;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.InlineScript;
+import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch.core.SearchRequest;
-import org.opensearch.client.opensearch.core.SearchResponse;
-import org.opensearch.client.opensearch.core.UpdateByQueryRequest;
-import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
+import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ThreadFactory;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
@@ -37,7 +42,7 @@ public class OpenSearch {
      * @param query        Query to be executed
      * @param index        Index were the search will be performed, you can use a pattern too
      * @param responseType Type of the object that will be mapped in the response
-     * @return A {@link SearchResponse} object with the results of the performed search
+     * @return A {@link SearchResponse} object with the results of the performed operation
      */
     public <T> SearchResponse<T> search(Query query, String index, Class<T> responseType) {
         final String ctx = CLASSNAME + ".search";
@@ -57,6 +62,7 @@ public class OpenSearch {
      * @param query  Query to be executed
      * @param index  Index were the search will be performed, you can use a pattern too
      * @param script Script that perform the update
+     * @return A {@link UpdateByQueryResponse} object with the results of the performed operation
      */
     public UpdateByQueryResponse updateByQuery(Query query, String index, String script) {
         final String ctx = CLASSNAME + ".updateByQuery";
@@ -74,6 +80,26 @@ public class OpenSearch {
                     .build());
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Perform an index operation
+     *
+     * @param index    Index were the search will be performed, you can use a pattern too
+     * @param document Information that will be indexed
+     * @return A {@link IndexResponse} object with the results of the performed operation
+     */
+    public <T> IndexResponse index(String index, T document) {
+        final String ctx = CLASSNAME + ".index";
+        try {
+            return client.index(new IndexRequest.Builder<T>()
+                    .index(index)
+                    .refresh(Refresh.True)
+                    .document(document)
+                    .build());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -104,8 +130,15 @@ public class OpenSearch {
                 if (hosts.isEmpty())
                     throw new RuntimeException("No hosts definition were provided");
 
+                SSLContextBuilder sslBuilder = SSLContexts.custom()
+                        .loadTrustMaterial(null, (x509Certificates, s) -> true);
+                final SSLContext sslContext = sslBuilder.build();
+
                 RestClient restClient = RestClient.builder(hosts.toArray(new HttpHost[0])).
-                        setHttpClientConfigCallback(builder -> builder.setDefaultCredentialsProvider(credentialsProvider))
+                        setHttpClientConfigCallback(builder -> builder
+                                .setSSLContext(sslContext)
+                                .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                                .setDefaultCredentialsProvider(credentialsProvider))
                         .build();
 
                 OpenSearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
