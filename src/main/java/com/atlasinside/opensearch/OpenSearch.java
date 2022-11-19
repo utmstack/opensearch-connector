@@ -1,6 +1,6 @@
 package com.atlasinside.opensearch;
 
-import com.atlasinside.opensearch.enums.HttpHostScheme;
+import com.atlasinside.opensearch.enums.HttpScheme;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -20,13 +20,11 @@ import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ThreadFactory;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
@@ -60,7 +58,7 @@ public class OpenSearch {
      * Perform an update by query operation
      *
      * @param query  Query to be executed
-     * @param index  Index were the search will be performed, you can use a pattern too
+     * @param index  Index were the update will be performed, you can use a pattern too
      * @param script Script that perform the update
      * @return A {@link UpdateByQueryResponse} object with the results of the performed operation
      */
@@ -86,7 +84,7 @@ public class OpenSearch {
     /**
      * Perform an index operation
      *
-     * @param index    Index were the search will be performed, you can use a pattern too
+     * @param index    Index were the index will be performed, you can use a pattern too
      * @param document Information that will be indexed
      * @return A {@link IndexResponse} object with the results of the performed operation
      */
@@ -99,7 +97,7 @@ public class OpenSearch {
                     .document(document)
                     .build());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
@@ -119,7 +117,7 @@ public class OpenSearch {
             return this;
         }
 
-        public Builder withHost(String hostname, int port, HttpHostScheme scheme) {
+        public Builder withHost(String hostname, int port, HttpScheme scheme) {
             hosts.add(new HttpHost(hostname, port, scheme.toString()));
             return this;
         }

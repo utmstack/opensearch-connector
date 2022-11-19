@@ -1,6 +1,6 @@
 package com.atlasinside.opensearch.enums;
 
-public enum HttpHostScheme {
+public enum HttpScheme {
     http,
     https
 }
