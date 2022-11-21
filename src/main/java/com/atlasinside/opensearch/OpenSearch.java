@@ -122,6 +122,11 @@ public class OpenSearch {
             return this;
         }
 
+        public Builder withHost(String url) {
+            hosts.add(HttpHost.create(url));
+            return this;
+        }
+
         public OpenSearch build() {
             try {
                 Objects.requireNonNull(credentialsProvider, "No credentials were provided");
