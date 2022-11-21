@@ -1,6 +1,7 @@
 package com.atlasinside.opensearch;
 
 import com.atlasinside.opensearch.enums.HttpScheme;
+import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -41,8 +42,9 @@ public class OpenSearch {
      * @param index        Index were the search will be performed, you can use a pattern too
      * @param responseType Type of the object that will be mapped in the response
      * @return A {@link SearchResponse} object with the results of the performed operation
+     * @throws OpenSearchException In case of any error
      */
-    public <T> SearchResponse<T> search(Query query, String index, Class<T> responseType) {
+    public <T> SearchResponse<T> search(Query query, String index, Class<T> responseType) throws OpenSearchException {
         final String ctx = CLASSNAME + ".search";
         try {
             return client.search(new SearchRequest.Builder()
@@ -50,7 +52,7 @@ public class OpenSearch {
                     .query(query)
                     .build(), responseType);
         } catch (Exception e) {
-            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
@@ -61,8 +63,9 @@ public class OpenSearch {
      * @param index  Index were the update will be performed, you can use a pattern too
      * @param script Script that perform the update
      * @return A {@link UpdateByQueryResponse} object with the results of the performed operation
+     * @throws OpenSearchException In case of any error
      */
-    public UpdateByQueryResponse updateByQuery(Query query, String index, String script) {
+    public UpdateByQueryResponse updateByQuery(Query query, String index, String script) throws OpenSearchException {
         final String ctx = CLASSNAME + ".updateByQuery";
         try {
             return client.updateByQuery(new UpdateByQueryRequest.Builder()
@@ -77,7 +80,7 @@ public class OpenSearch {
                     .refresh(true)
                     .build());
         } catch (Exception e) {
-            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
@@ -87,8 +90,9 @@ public class OpenSearch {
      * @param index    Index were the index will be performed, you can use a pattern too
      * @param document Information that will be indexed
      * @return A {@link IndexResponse} object with the results of the performed operation
+     * @throws OpenSearchException In case of any error
      */
-    public <T> IndexResponse index(String index, T document) {
+    public <T> IndexResponse index(String index, T document) throws OpenSearchException {
         final String ctx = CLASSNAME + ".index";
         try {
             return client.index(new IndexRequest.Builder<T>()
@@ -97,7 +101,7 @@ public class OpenSearch {
                     .document(document)
                     .build());
         } catch (IOException e) {
-            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
