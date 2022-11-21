@@ -17,6 +17,8 @@ import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch.cat.IndicesResponse;
+import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
 import org.opensearch.client.opensearch.core.*;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
@@ -24,6 +26,7 @@ import org.opensearch.client.transport.rest_client.RestClientTransport;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -100,6 +103,23 @@ public class OpenSearch {
                     .refresh(Refresh.True)
                     .document(document)
                     .build());
+        } catch (IOException e) {
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Check if the index passed in the method args exist
+     *
+     * @param index Index were the index will be performed, you can use a pattern too
+     * @return True if index exist, false otherwise
+     * @throws OpenSearchException In case of any error
+     */
+    public boolean indexExist(String index) throws OpenSearchException {
+        final String ctx = CLASSNAME + ".indexExist";
+        try {
+            List<IndicesRecord> result = client.cat().indices(i -> i.index(index)).valueBody();
+            return result != null && !result.isEmpty();
         } catch (IOException e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
