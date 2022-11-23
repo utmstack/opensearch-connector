@@ -17,16 +17,16 @@ import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch.cat.IndicesResponse;
 import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
-import org.opensearch.client.opensearch.core.*;
+import org.opensearch.client.opensearch.core.IndexResponse;
+import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -43,17 +43,19 @@ public class OpenSearch {
      *
      * @param query        Query to be executed
      * @param index        Index were the search will be performed, you can use a pattern too
+     * @param size         Amount of hits you want to return
      * @param responseType Type of the object that will be mapped in the response
      * @return A {@link SearchResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
      */
-    public <T> SearchResponse<T> search(Query query, String index, Class<T> responseType) throws OpenSearchException {
+    public <T> SearchResponse<T> search(Query query, String index, int size, Class<T> responseType)
+            throws OpenSearchException {
         final String ctx = CLASSNAME + ".search";
         try {
-            return client.search(new SearchRequest.Builder()
+            return client.search(s -> s
                     .index(index)
                     .query(query)
-                    .build(), responseType);
+                    .size(size), responseType);
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
@@ -68,10 +70,11 @@ public class OpenSearch {
      * @return A {@link UpdateByQueryResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
      */
-    public UpdateByQueryResponse updateByQuery(Query query, String index, String script) throws OpenSearchException {
+    public UpdateByQueryResponse updateByQuery(Query query, String index, String script)
+            throws OpenSearchException {
         final String ctx = CLASSNAME + ".updateByQuery";
         try {
-            return client.updateByQuery(new UpdateByQueryRequest.Builder()
+            return client.updateByQuery(u -> u
                     .index(index)
                     .query(query)
                     .script(new Script.Builder()
@@ -80,8 +83,7 @@ public class OpenSearch {
                                     .source(script)
                                     .build())
                             .build())
-                    .refresh(true)
-                    .build());
+                    .refresh(true));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
@@ -98,11 +100,10 @@ public class OpenSearch {
     public <T> IndexResponse index(String index, T document) throws OpenSearchException {
         final String ctx = CLASSNAME + ".index";
         try {
-            return client.index(new IndexRequest.Builder<T>()
+            return client.index(i -> i
                     .index(index)
                     .refresh(Refresh.True)
-                    .document(document)
-                    .build());
+                    .document(document));
         } catch (IOException e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
