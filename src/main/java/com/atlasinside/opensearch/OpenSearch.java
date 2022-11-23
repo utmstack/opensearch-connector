@@ -110,7 +110,7 @@ public class OpenSearch {
     }
 
     /**
-     * Check if the index passed in the method args exist
+     * Check if some index exist
      *
      * @param index Index were the index will be performed, you can use a pattern too
      * @return True if index exist, false otherwise
@@ -119,11 +119,27 @@ public class OpenSearch {
     public boolean indexExist(String index) throws OpenSearchException {
         final String ctx = CLASSNAME + ".indexExist";
         try {
-            List<IndicesRecord> result = client.cat().indices(i -> i.index(index)).valueBody();
-            return result != null && !result.isEmpty();
+            return client.indices().exists(e -> e.index(index)).value();
         } catch (IOException e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
+    }
+
+
+    /**
+     * Removes one or more indices
+     *
+     * @param indices The list of indices to delete
+     * @throws OpenSearchException In case of any error
+     */
+    public void deleteIndex(List<String> indices) throws OpenSearchException {
+        final String ctx = CLASSNAME + ".deleteIndex";
+        try {
+            client.indices().delete(d -> d.index(indices));
+        } catch (IOException e) {
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
+        }
+
     }
 
     public static Builder builder() {
