@@ -16,6 +16,7 @@ import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
+import org.opensearch.client.opensearch._types.aggregations.Aggregation;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
 import org.opensearch.client.opensearch.core.IndexResponse;
@@ -24,10 +25,12 @@ import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class OpenSearch {
@@ -42,19 +45,24 @@ public class OpenSearch {
      * Perform a search operation
      *
      * @param query        Query to be executed
+     * @param aggs         Aggregations to be performed
      * @param index        Index were the search will be performed, you can use a pattern too
      * @param size         Amount of hits you want to return
      * @param responseType Type of the object that will be mapped in the response
      * @return A {@link SearchResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
      */
-    public <T> SearchResponse<T> search(Query query, String index, int size, Class<T> responseType)
-            throws OpenSearchException {
+    public <T> SearchResponse<T> search(@Nullable Query query,
+                                        @Nullable Map<String, Aggregation> aggs,
+                                        String index,
+                                        int size,
+                                        Class<T> responseType) throws OpenSearchException {
         final String ctx = CLASSNAME + ".search";
         try {
             return client.search(s -> s
                     .index(index)
                     .query(query)
+                    .aggregations(aggs)
                     .size(size), responseType);
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
@@ -139,7 +147,6 @@ public class OpenSearch {
         } catch (IOException e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
-
     }
 
     public static Builder builder() {
