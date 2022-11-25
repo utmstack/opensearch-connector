@@ -2,6 +2,8 @@ package com.atlasinside.opensearch;
 
 import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -17,21 +19,19 @@ import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
 import org.opensearch.client.opensearch.core.IndexResponse;
+import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
@@ -44,26 +44,15 @@ public class OpenSearch {
     /**
      * Perform a search operation
      *
-     * @param query        Query to be executed
-     * @param aggs         Aggregations to be performed
-     * @param index        Index were the search will be performed, you can use a pattern too
-     * @param size         Amount of hits you want to return
+     * @param request      Search request definition
      * @param responseType Type of the object that will be mapped in the response
      * @return A {@link SearchResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
      */
-    public <T> SearchResponse<T> search(@Nullable Query query,
-                                        @Nullable Map<String, Aggregation> aggs,
-                                        String index,
-                                        int size,
-                                        Class<T> responseType) throws OpenSearchException {
+    public <T> SearchResponse<T> search(SearchRequest request, Class<T> responseType) throws OpenSearchException {
         final String ctx = CLASSNAME + ".search";
         try {
-            return client.search(s -> s
-                    .index(index)
-                    .query(query)
-                    .aggregations(aggs)
-                    .size(size), responseType);
+            return client.search(request, responseType);
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
@@ -73,7 +62,7 @@ public class OpenSearch {
      * Perform an update by query operation
      *
      * @param query  Query to be executed
-     * @param index  Index were the update will be performed, you can use a pattern too
+     * @param index  Index where the update will be performed, you can use a pattern too
      * @param script Script that perform the update
      * @return A {@link UpdateByQueryResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
@@ -100,7 +89,7 @@ public class OpenSearch {
     /**
      * Perform an index operation
      *
-     * @param index    Index were the index will be performed, you can use a pattern too
+     * @param index    Index where the index will be performed, you can use a pattern too
      * @param document Information that will be indexed
      * @return A {@link IndexResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
@@ -120,7 +109,7 @@ public class OpenSearch {
     /**
      * Check if some index exist
      *
-     * @param index Index were the index will be performed, you can use a pattern too
+     * @param index Index where the indexing will be performed, you can use a pattern too
      * @return True if index exist, false otherwise
      * @throws OpenSearchException In case of any error
      */
@@ -148,6 +137,39 @@ public class OpenSearch {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
+
+    /**
+     * Search for the possible values of the field in the specified index or index pattern.
+     * If the field is a text, then you need to use it as a keyword.
+     * <br>
+     * Example:
+     * <br>
+     * If you field {name} is a text then you need to pass the field as {name.keyword}
+     *
+     * @param field Field to search for his values
+     * @param index Index where the action will be performed, you can use a pattern too
+     * @return A map with all values founded for the field and the amount of documents for each value
+     * @throws OpenSearchException In case of any error
+     */
+    public Map<String, Long> getFieldValues(String field, String index) throws OpenSearchException {
+        final String ctx = CLASSNAME + ".getFieldValues";
+        try {
+            Validate.notBlank(field, "Field must not be null or empty");
+            Validate.notBlank(index, "Index must not be null or empty");
+
+            final String AGG_NAME = "field_values";
+            Aggregation fieldValuesAgg = Aggregation.of(agg -> agg.terms(t -> t.field(field).size(10000)));
+            SearchResponse<Object> response = client.search(s -> s.aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
+            List<StringTermsBucket> buckets = response.aggregations().get(AGG_NAME).sterms().buckets().array();
+
+            if (!CollectionUtils.isEmpty(buckets))
+                return buckets.stream().collect(Collectors.toMap(StringTermsBucket::key, StringTermsBucket::docCount));
+            return Collections.emptyMap();
+        } catch (Exception e) {
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
 
     public static Builder builder() {
         return new Builder();
