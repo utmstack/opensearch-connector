@@ -1,6 +1,7 @@
 package com.atlasinside.opensearch;
 
 import com.atlasinside.opensearch.enums.HttpScheme;
+import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Validate;
@@ -18,7 +19,9 @@ import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
+import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.MissingOrder;
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexResponse;
@@ -146,20 +149,30 @@ public class OpenSearch {
      * <br>
      * If you field {name} is a text then you need to pass the field as {name.keyword}
      *
-     * @param field Field to search for his values
-     * @param index Index where the action will be performed, you can use a pattern too
+     * @param field     Field to search for his values
+     * @param index     Index where the action will be performed, you can use a pattern too
+     * @param query     Any query to perform before get the field values
+     * @param top       Top values you want to get
+     * @param termOrder There are to ways to order the results, alphabetically (by the values name)
+     *                  and metrically (by the amount of documents)
+     * @param sortOrder The way that you want to sort the resuts Asc or Desc
      * @return A map with all values founded for the field and the amount of documents for each value
      * @throws OpenSearchException In case of any error
      */
-    public Map<String, Long> getFieldValues(String field, String index) throws OpenSearchException {
+    public Map<String, Long> getFieldValues(String field, String index, Query query, Integer top,
+                                            TermOrder termOrder, SortOrder sortOrder) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getFieldValues";
         try {
             Validate.notBlank(field, "Field must not be null or empty");
             Validate.notBlank(index, "Index must not be null or empty");
 
             final String AGG_NAME = "field_values";
-            Aggregation fieldValuesAgg = Aggregation.of(agg -> agg.terms(t -> t.field(field).size(10000)));
-            SearchResponse<Object> response = client.search(s -> s.aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
+            Map<String, SortOrder> order = Map.of(termOrder.jsonValue(), sortOrder);
+            Aggregation fieldValuesAgg = Aggregation.of(agg -> agg.terms(t -> t.field(field)
+                    .size(top != null ? top : 5).order(List.of(order))));
+            SearchResponse<Object> response = client.search(s -> s
+                    .query(query)
+                    .aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
             List<StringTermsBucket> buckets = response.aggregations().get(AGG_NAME).sterms().buckets().array();
 
             if (!CollectionUtils.isEmpty(buckets))
@@ -221,5 +234,16 @@ public class OpenSearch {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public static void main(String[] args) throws OpenSearchException {
+        OpenSearch os = OpenSearch.builder()
+                .withHost("localhost", 9200, HttpScheme.https)
+                .withCredentials("admin", "admin")
+                .build();
+
+        System.out.println(os.getFieldValues("machine.os.keyword", "opensearch_dashboards_sample_data_logs",
+                null, null, TermOrder.Key, SortOrder.Asc));
+
     }
 }
