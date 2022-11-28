@@ -3,8 +3,8 @@ package com.atlasinside.opensearch;
 import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
-import com.atlasinside.opensearch.types.IndexPropertyType;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
+import com.atlasinside.opensearch.types.IndexPropertyType;
 import com.atlasinside.opensearch.util.IndexUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -25,8 +25,6 @@ import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
-import org.opensearch.client.opensearch._types.analysis.MappingCharFilter;
-import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
@@ -35,12 +33,10 @@ import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.transport.OpenSearchTransport;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
-import org.opensearch.client.util.ApiTypeHelper;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";

@@ -12,34 +12,40 @@ public class IndexUtils {
     private static final String CLASSNAME = "IndexUtils";
 
     /**
+     * This is a recursive method that iterate over the index mappings response,
+     * build the fields names and types and fill a map with those values
      *
-     * @param mapping
-     * @param result
-     * @param parent
+     * @param mapping A map representing an index mapping
+     * @param result  A map to set the operation results
+     * @param parent  Name of the parent field
      */
     public static void propertiesFromMapping(Map<String, Property> mapping,
                                              Map<String, IndexPropertyType> result,
                                              String parent) {
         final String ctx = CLASSNAME + ".propertiesFromMapping";
 
-        mapping.forEach((k, v)->{
-            String key = k;
-            if (StringUtils.isNotBlank(parent))
-                key = parent + "." + k;
+        try {
+            mapping.forEach((k, v) -> {
+                String key = k;
+                if (StringUtils.isNotBlank(parent))
+                    key = parent + "." + k;
 
-            if (v.isObject()) {
-                propertiesFromMapping(v.object().properties(), result, key);
-            } else {
-                result.put(key, new IndexPropertyType(key, v._kind().jsonValue()));
+                if (v.isObject()) {
+                    propertiesFromMapping(v.object().properties(), result, key);
+                } else {
+                    result.put(key, new IndexPropertyType(key, v._kind().jsonValue()));
 
-                if (v.isText()) {
-                    Map<String, Property> fields = v.text().fields();
-                    if (MapUtils.isNotEmpty(fields) && fields.containsKey("keyword")) {
-                        String keyword = key + "." + "keyword";
-                        result.put(keyword, new IndexPropertyType(keyword, fields.get("keyword")._kind().jsonValue()));
+                    if (v.isText()) {
+                        Map<String, Property> fields = v.text().fields();
+                        if (MapUtils.isNotEmpty(fields) && fields.containsKey("keyword")) {
+                            String keyword = key + "." + "keyword";
+                            result.put(keyword, new IndexPropertyType(keyword, fields.get("keyword")._kind().jsonValue()));
+                        }
                     }
                 }
-            }
-        });
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
     }
 }
