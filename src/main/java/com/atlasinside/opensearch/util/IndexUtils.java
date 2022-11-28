@@ -19,11 +19,8 @@ public class IndexUtils {
      * @param result  A map to set the operation results
      * @param parent  Name of the parent field
      */
-    public static void propertiesFromMapping(Map<String, Property> mapping,
-                                             Map<String, IndexPropertyType> result,
-                                             String parent) {
+    public static void propertiesFromMapping(Map<String, Property> mapping, Map<String, String> result, String parent) {
         final String ctx = CLASSNAME + ".propertiesFromMapping";
-
         try {
             mapping.forEach((k, v) -> {
                 String key = k;
@@ -33,14 +30,11 @@ public class IndexUtils {
                 if (v.isObject()) {
                     propertiesFromMapping(v.object().properties(), result, key);
                 } else {
-                    result.put(key, new IndexPropertyType(key, v._kind().jsonValue()));
-
+                    result.put(key, v._kind().jsonValue());
                     if (v.isText()) {
                         Map<String, Property> fields = v.text().fields();
-                        if (MapUtils.isNotEmpty(fields) && fields.containsKey("keyword")) {
-                            String keyword = key + "." + "keyword";
-                            result.put(keyword, new IndexPropertyType(keyword, fields.get("keyword")._kind().jsonValue()));
-                        }
+                        if (MapUtils.isNotEmpty(fields) && fields.containsKey("keyword"))
+                            result.put(key + "." + "keyword",  fields.get("keyword")._kind().jsonValue());
                     }
                 }
             });

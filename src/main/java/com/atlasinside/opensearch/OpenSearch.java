@@ -188,22 +188,22 @@ public class OpenSearch {
      * Gets all fields of an index
      *
      * @param index Index or pattern from which fields will be extracted
-     * @return A list of ${@link IndexPropertyType} with the name and type of a field
+     * @return A map with the name of a field as the key and type of a field as the value
      * @throws OpenSearchException In case of any error
      */
-    public List<IndexPropertyType> getIndexProperties(String index) throws OpenSearchException {
+    public Map<String, String> getIndexProperties(String index) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getIndexProperties";
         try {
             Validate.notBlank(index, "The Index parameter must not be null or empty");
             Map<String, IndexMappingRecord> mapping = client.indices().getMapping(f -> f.index(index)).result();
 
             if (MapUtils.isEmpty(mapping))
-                return Collections.emptyList();
+                return Collections.emptyMap();
 
-            Map<String, IndexPropertyType> propertiesMap = new TreeMap<>();
-            mapping.forEach((k, v) -> IndexUtils.propertiesFromMapping(v.mappings().properties(), propertiesMap, null));
+            Map<String, String> result = new TreeMap<>();
+            mapping.forEach((k, v) -> IndexUtils.propertiesFromMapping(v.mappings().properties(), result, null));
 
-            return new ArrayList<>(propertiesMap.values());
+            return result;
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
