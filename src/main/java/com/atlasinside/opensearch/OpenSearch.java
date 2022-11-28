@@ -3,7 +3,7 @@ package com.atlasinside.opensearch;
 import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
-import org.apache.commons.collections4.CollectionUtils;
+import com.atlasinside.opensearch.util.TermAggregateParser;
 import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -21,8 +21,6 @@ import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
-import org.opensearch.client.opensearch._types.aggregations.MissingOrder;
-import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
@@ -33,8 +31,10 @@ import org.opensearch.client.transport.rest_client.RestClientTransport;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
@@ -171,13 +171,10 @@ public class OpenSearch {
             Aggregation fieldValuesAgg = Aggregation.of(agg -> agg.terms(t -> t.field(field)
                     .size(top != null ? top : 5).order(List.of(order))));
             SearchResponse<Object> response = client.search(s -> s
-                    .query(query)
+                    .query(query).size(0)
                     .aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
-            List<StringTermsBucket> buckets = response.aggregations().get(AGG_NAME).sterms().buckets().array();
 
-            if (!CollectionUtils.isEmpty(buckets))
-                return buckets.stream().collect(Collectors.toMap(StringTermsBucket::key, StringTermsBucket::docCount));
-            return Collections.emptyMap();
+            return TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
@@ -234,16 +231,5 @@ public class OpenSearch {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public static void main(String[] args) throws OpenSearchException {
-        OpenSearch os = OpenSearch.builder()
-                .withHost("localhost", 9200, HttpScheme.https)
-                .withCredentials("admin", "admin")
-                .build();
-
-        System.out.println(os.getFieldValues("machine.os.keyword", "opensearch_dashboards_sample_data_logs",
-                null, null, TermOrder.Key, SortOrder.Asc));
-
     }
 }
