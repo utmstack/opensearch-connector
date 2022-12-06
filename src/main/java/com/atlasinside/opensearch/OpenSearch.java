@@ -1,24 +1,15 @@
 package com.atlasinside.opensearch;
 
+import com.atlasinside.opensearch.clients.OpensearchClient;
+import com.atlasinside.opensearch.clients.RestClient;
 import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
-import com.atlasinside.opensearch.types.IndexPropertyType;
+import com.atlasinside.opensearch.types.Index;
+import com.atlasinside.opensearch.types.IndexSort;
 import com.atlasinside.opensearch.util.IndexUtils;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.Validate;
 import org.apache.http.HttpHost;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
-import org.opensearch.client.RestClient;
-import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
@@ -31,19 +22,20 @@ import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
-import org.opensearch.client.transport.OpenSearchTransport;
-import org.opensearch.client.transport.rest_client.RestClientTransport;
+import org.springframework.http.HttpHeaders;
+import org.springframework.util.*;
 
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
 import java.util.*;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
     private final OpenSearchClient client;
+    private final RestClient restClient;
 
-    private OpenSearch(OpenSearchClient client) {
+
+    private OpenSearch(OpenSearchClient client, RestClient restClient) {
         this.client = client;
+        this.restClient = restClient;
     }
 
     /**
@@ -106,7 +98,7 @@ public class OpenSearch {
                     .index(index)
                     .refresh(Refresh.True)
                     .document(document));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
@@ -123,7 +115,7 @@ public class OpenSearch {
         try {
             return !CollectionUtils.isEmpty(client.indices()
                     .resolveIndex(e -> e.name(index)).indices());
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
@@ -139,7 +131,7 @@ public class OpenSearch {
         final String ctx = CLASSNAME + ".deleteIndex";
         try {
             client.indices().delete(d -> d.index(indices));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
@@ -158,7 +150,7 @@ public class OpenSearch {
      * @param top       Top values you want to get
      * @param termOrder There are to ways to order the results, alphabetically (by the values name)
      *                  and metrically (by the amount of documents)
-     * @param sortOrder The way that you want to sort the resuts Asc or Desc
+     * @param sortOrder The way that you want to sort the results Asc or Desc
      * @return A map with all values founded for the field and the amount of documents for each value
      * @throws OpenSearchException In case of any error
      */
@@ -166,8 +158,8 @@ public class OpenSearch {
                                             TermOrder termOrder, SortOrder sortOrder) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getFieldValues";
         try {
-            Validate.notBlank(field, "The Field parameter must not be null or empty");
-            Validate.notBlank(index, "The Index parameter must not be null or empty");
+            Assert.hasText(field, "The Field parameter must not be null or empty");
+            Assert.hasText(index, "The Index parameter must not be null or empty");
 
             final String AGG_NAME = "field_values";
             Map<String, SortOrder> order = Map.of(termOrder.jsonValue(), sortOrder);
@@ -188,16 +180,16 @@ public class OpenSearch {
      * Gets all fields of an index
      *
      * @param index Index or pattern from which fields will be extracted
-     * @return A map with the name of a field as the key and type of a field as the value
+     * @return A map with the name of a field as the key and type of field as the value
      * @throws OpenSearchException In case of any error
      */
     public Map<String, String> getIndexProperties(String index) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getIndexProperties";
         try {
-            Validate.notBlank(index, "The Index parameter must not be null or empty");
+            Assert.hasText(index, "The Index parameter must not be null or empty");
             Map<String, IndexMappingRecord> mapping = client.indices().getMapping(f -> f.index(index)).result();
 
-            if (MapUtils.isEmpty(mapping))
+            if (CollectionUtils.isEmpty(mapping))
                 return Collections.emptyMap();
 
             Map<String, String> result = new TreeMap<>();
@@ -209,55 +201,69 @@ public class OpenSearch {
         }
     }
 
+    /**
+     * Gets a list with the index information that match with the pattern
+     *
+     * @param pattern   The pattern or the index name from which you want to get the information
+     * @param indexSort Set of properties to sort the result
+     * @return A list of ${@link Index}
+     * @throws OpenSearchException In case of any error
+     */
+    public List<Index> getIndices(String pattern, IndexSort indexSort) throws OpenSearchException {
+        final String ctx = CLASSNAME + ".getIndices";
+        try {
+            if (Objects.isNull(indexSort))
+                indexSort = IndexSort.unSorted();
+
+            if (!StringUtils.hasText(pattern))
+                pattern = "*";
+
+            String uri = String.format("/_cat/indices/%1$s", pattern);
+
+            MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+            queryParams.set("format", "json");
+            queryParams.set("h", "index,docs.count,health,store.size,status,creation.date.string");
+
+            if (indexSort.isSorted())
+                queryParams.set("s", indexSort.toString());
+
+            return Arrays.asList(restClient.get(uri, queryParams, Index[].class));
+        } catch (Exception e) {
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
 
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
-        private CredentialsProvider credentialsProvider;
-        private final List<HttpHost> hosts = new ArrayList<>();
+        private String user;
+        private String password;
+        private HttpHost host;
+        private final HttpHeaders headers = new HttpHeaders();
 
         public Builder withCredentials(String user, String password) {
-            if (credentialsProvider != null)
-                return this;
-            credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
+            this.user = user;
+            this.password = password;
             return this;
         }
 
         public Builder withHost(String hostname, int port, HttpScheme scheme) {
-            hosts.add(new HttpHost(hostname, port, scheme.toString()));
-            return this;
-        }
-
-        public Builder withHost(String url) {
-            hosts.add(HttpHost.create(url));
+            host = new HttpHost(hostname, port, scheme.toString());
             return this;
         }
 
         public OpenSearch build() {
+            final String ctx = CLASSNAME + ".build";
             try {
-                Objects.requireNonNull(credentialsProvider, "No credentials were provided");
-                if (hosts.isEmpty())
-                    throw new RuntimeException("No hosts definition were provided");
-
-                SSLContextBuilder sslBuilder = SSLContexts.custom()
-                        .loadTrustMaterial(null, (x509Certificates, s) -> true);
-                final SSLContext sslContext = sslBuilder.build();
-
-                RestClient restClient = RestClient.builder(hosts.toArray(new HttpHost[0])).
-                        setHttpClientConfigCallback(builder -> builder
-                                .setSSLContext(sslContext)
-                                .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                                .setDefaultCredentialsProvider(credentialsProvider))
-                        .build();
-
-                OpenSearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
-
-                return new OpenSearch(new OpenSearchClient(transport));
+                return new OpenSearch(
+                        OpensearchClient.build(user, password, host),
+                        new RestClient(user, password, host)
+                );
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
             }
         }
     }

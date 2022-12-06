@@ -1,10 +1,8 @@
 package com.atlasinside.opensearch.util;
 
-import com.atlasinside.opensearch.types.IndexPropertyType;
-import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.opensearch.client.opensearch._types.mapping.Property;
-import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
@@ -24,7 +22,7 @@ public class IndexUtils {
         try {
             mapping.forEach((k, v) -> {
                 String key = k;
-                if (StringUtils.isNotBlank(parent))
+                if (StringUtils.hasText(parent))
                     key = parent + "." + k;
 
                 if (v.isObject()) {
@@ -33,7 +31,7 @@ public class IndexUtils {
                     result.put(key, v._kind().jsonValue());
                     if (v.isText()) {
                         Map<String, Property> fields = v.text().fields();
-                        if (MapUtils.isNotEmpty(fields) && fields.containsKey("keyword"))
+                        if (!CollectionUtils.isEmpty(fields) && fields.containsKey("keyword"))
                             result.put(key + "." + "keyword",  fields.get("keyword")._kind().jsonValue());
                     }
                 }
