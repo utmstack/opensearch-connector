@@ -31,7 +31,7 @@ public class OpensearchClient {
                     .loadTrustMaterial(null, (x509Certificates, s) -> true);
             final SSLContext sslContext = sslBuilder.build();
 
-            org.opensearch.client.RestClient restClient = RestClient.builder(host)
+            RestClient restClient = RestClient.builder(host)
                     .setHttpClientConfigCallback(builder -> builder
                             .setSSLContext(sslContext)
                             .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
