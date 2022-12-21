@@ -4,14 +4,14 @@ import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 
 import java.util.Map;
 
-public class TermAggregation {
+public class Aggregation {
     private String key;
-    private Long value;
+    private Long docCount;
     private Map<String, Aggregate> subAggregations;
 
-    public TermAggregation(String key, Long value, Map<String, Aggregate> subAggregations) {
+    public Aggregation(String key, Long docCount, Map<String, Aggregate> subAggregations) {
         this.key = key;
-        this.value = value;
+        this.docCount = docCount;
         this.subAggregations = subAggregations;
     }
 
@@ -23,12 +23,12 @@ public class TermAggregation {
         this.key = key;
     }
 
-    public Long getValue() {
-        return value;
+    public Long getDocCount() {
+        return docCount;
     }
 
-    public void setValue(Long value) {
-        this.value = value;
+    public void setDocCount(Long docCount) {
+        this.docCount = docCount;
     }
 
     public Map<String, Aggregate> getSubAggregations() {

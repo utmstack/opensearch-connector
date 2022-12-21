@@ -8,7 +8,7 @@ import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
-import com.atlasinside.opensearch.types.TermAggregation;
+import com.atlasinside.opensearch.types.Aggregation;
 import com.atlasinside.opensearch.util.IndexUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -16,7 +16,9 @@ import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.CalendarInterval;
+import org.opensearch.client.opensearch._types.aggregations.DateHistogramAggregation;
+import org.opensearch.client.opensearch._types.aggregations.TermsAggregation;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
@@ -165,17 +167,17 @@ public class OpenSearch {
 
             final String AGG_NAME = "field_values";
             Map<String, SortOrder> order = Map.of(termOrder.jsonValue(), sortOrder);
-            Aggregation fieldValuesAgg = Aggregation.of(agg -> agg.terms(t -> t.field(field)
+            org.opensearch.client.opensearch._types.aggregations.Aggregation fieldValuesAgg = org.opensearch.client.opensearch._types.aggregations.Aggregation.of(agg -> agg.terms(t -> t.field(field)
                     .size(top != null ? top : 5).order(List.of(order))));
             SearchResponse<Object> response = client.search(s -> s
                     .query(query).size(0)
                     .index(index)
                     .aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
 
-            List<TermAggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
+            List<Aggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
             if (CollectionUtils.isEmpty(list))
                 return Collections.emptyMap();
-            return list.stream().collect(Collectors.toMap(TermAggregation::getKey, TermAggregation::getValue));
+            return list.stream().collect(Collectors.toMap(Aggregation::getKey, Aggregation::getDocCount));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
