@@ -8,6 +8,7 @@ import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
+import com.atlasinside.opensearch.types.TermAggregation;
 import com.atlasinside.opensearch.util.IndexUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -26,6 +27,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.util.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
@@ -170,7 +172,10 @@ public class OpenSearch {
                     .index(index)
                     .aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
 
-            return TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
+            List<TermAggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
+            if (CollectionUtils.isEmpty(list))
+                return Collections.emptyMap();
+            return list.stream().collect(Collectors.toMap(TermAggregation::getKey, TermAggregation::getValue));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
