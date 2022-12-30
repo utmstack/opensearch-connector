@@ -8,7 +8,7 @@ import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
-import com.atlasinside.opensearch.types.Aggregation;
+import com.atlasinside.opensearch.types.BucketAggregation;
 import com.atlasinside.opensearch.util.IndexUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -16,9 +16,6 @@ import org.opensearch.client.opensearch._types.InlineScript;
 import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.aggregations.CalendarInterval;
-import org.opensearch.client.opensearch._types.aggregations.DateHistogramAggregation;
-import org.opensearch.client.opensearch._types.aggregations.TermsAggregation;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
@@ -174,10 +171,10 @@ public class OpenSearch {
                     .index(index)
                     .aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
 
-            List<Aggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
+            List<BucketAggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
             if (CollectionUtils.isEmpty(list))
                 return Collections.emptyMap();
-            return list.stream().collect(Collectors.toMap(Aggregation::getKey, Aggregation::getDocCount));
+            return list.stream().collect(Collectors.toMap(BucketAggregation::getKey, BucketAggregation::getDocCount));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }

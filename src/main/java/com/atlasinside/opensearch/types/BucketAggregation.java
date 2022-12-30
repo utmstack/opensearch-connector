@@ -4,12 +4,12 @@ import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 
 import java.util.Map;
 
-public class Aggregation {
+public class BucketAggregation {
     private String key;
     private Long docCount;
     private Map<String, Aggregate> subAggregations;
 
-    public Aggregation(String key, Long docCount, Map<String, Aggregate> subAggregations) {
+    public BucketAggregation(String key, Long docCount, Map<String, Aggregate> subAggregations) {
         this.key = key;
         this.docCount = docCount;
         this.subAggregations = subAggregations;

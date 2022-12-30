@@ -1,6 +1,6 @@
 package com.atlasinside.opensearch.parsers;
 
-import com.atlasinside.opensearch.types.Aggregation;
+import com.atlasinside.opensearch.types.BucketAggregation;
 import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 import org.opensearch.client.opensearch._types.aggregations.DateHistogramBucket;
 
@@ -12,7 +12,7 @@ import java.util.Objects;
 public class DateHistogramAggregateParser {
     private static final String CLASSNAME = "DateHistogramAggregateParser";
 
-    public static List<Aggregation> parse(Aggregate aggregate) {
+    public static List<BucketAggregation> parse(Aggregate aggregate) {
         final String ctx = CLASSNAME + ".parse";
         try {
             if (Objects.isNull(aggregate))
@@ -23,9 +23,9 @@ public class DateHistogramAggregateParser {
             if (Objects.isNull(buckets))
                 return Collections.emptyList();
 
-            List<Aggregation> result = new ArrayList<>();
+            List<BucketAggregation> result = new ArrayList<>();
 
-            buckets.forEach(bucket -> result.add(new Aggregation(bucket.keyAsString(),
+            buckets.forEach(bucket -> result.add(new BucketAggregation(bucket.keyAsString(),
                     bucket.docCount(), bucket.aggregations())));
 
             return result;
