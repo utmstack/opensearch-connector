@@ -6,9 +6,9 @@ import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
+import com.atlasinside.opensearch.types.BucketAggregation;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
-import com.atlasinside.opensearch.types.BucketAggregation;
 import com.atlasinside.opensearch.util.IndexUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -22,7 +22,6 @@ import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
-import org.springframework.http.HttpHeaders;
 import org.springframework.util.*;
 
 import java.util.*;
@@ -246,7 +245,6 @@ public class OpenSearch {
         private String user;
         private String password;
         private HttpHost host;
-        private final HttpHeaders headers = new HttpHeaders();
 
         public Builder withCredentials(String user, String password) {
             this.user = user;
@@ -264,8 +262,7 @@ public class OpenSearch {
             try {
                 return new OpenSearch(
                         OpensearchClient.build(user, password, host),
-                        new RestClient(user, password, host)
-                );
+                        new RestClient(user, password, host));
             } catch (Exception e) {
                 throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
             }
