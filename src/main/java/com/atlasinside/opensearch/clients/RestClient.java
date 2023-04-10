@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
@@ -27,11 +28,12 @@ public class RestClient {
             final HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
             headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
-            headers.setBasicAuth(user, password);
 
-            final int size = 16 * 1024 * 1024;
+            if (StringUtils.hasText(user) && StringUtils.hasText(password))
+                headers.setBasicAuth(user, password);
+
             final ExchangeStrategies strategies = ExchangeStrategies.builder()
-                    .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(size))
+                    .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
                     .build();
 
             SslContext sslContext = SslContextBuilder.forClient()

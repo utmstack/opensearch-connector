@@ -12,12 +12,14 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
+import org.springframework.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.util.Objects;
 
 public class OpensearchClient {
     private static final String CLASSNAME = "OpensearchClient";
+
     public static OpenSearchClient build(String user, String password, HttpHost host) {
         final String ctx = CLASSNAME + ".build";
         try {
@@ -31,13 +33,21 @@ public class OpensearchClient {
                     .loadTrustMaterial(null, (x509Certificates, s) -> true);
             final SSLContext sslContext = sslBuilder.build();
 
-            RestClient restClient = RestClient.builder(host)
-                    .setHttpClientConfigCallback(builder -> builder
-                            .setSSLContext(sslContext)
-                            .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                            .setDefaultCredentialsProvider(credentialsProvider))
-                    .build();
-
+            RestClient restClient;
+            if (StringUtils.hasText(user) && StringUtils.hasText(password)) {
+                restClient = RestClient.builder(host)
+                        .setHttpClientConfigCallback(builder -> builder
+                                .setSSLContext(sslContext)
+                                .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                                .setDefaultCredentialsProvider(credentialsProvider))
+                        .build();
+            } else {
+                restClient = RestClient.builder(host)
+                        .setHttpClientConfigCallback(builder -> builder
+                                .setSSLContext(sslContext)
+                                .setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE))
+                        .build();
+            }
             return new OpenSearchClient(new RestClientTransport(restClient, new JacksonJsonpMapper()));
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
