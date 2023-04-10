@@ -65,7 +65,6 @@ public class RestClient {
      * @param type        Type to map the response
      * @param queryParams A map with the query parameters
      * @param <T>         Generic representation of the response
-     * @return
      */
     public <T> T get(String uri, MultiValueMap<String, String> queryParams, Class<T> type) {
         final String ctx = CLASSNAME + ".get";
