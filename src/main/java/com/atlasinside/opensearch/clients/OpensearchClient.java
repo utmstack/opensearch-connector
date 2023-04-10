@@ -23,9 +23,6 @@ public class OpensearchClient {
     public static OpenSearchClient build(String user, String password, HttpHost host) {
         final String ctx = CLASSNAME + ".build";
         try {
-            CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-            credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
-
             if (Objects.isNull(host))
                 throw new RuntimeException("No hosts definition were provided");
 
@@ -35,6 +32,8 @@ public class OpensearchClient {
 
             RestClient restClient;
             if (StringUtils.hasText(user) && StringUtils.hasText(password)) {
+                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
                 restClient = RestClient.builder(host)
                         .setHttpClientConfigCallback(builder -> builder
                                 .setSSLContext(sslContext)
