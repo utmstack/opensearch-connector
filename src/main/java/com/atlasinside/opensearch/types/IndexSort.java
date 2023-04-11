@@ -1,8 +1,8 @@
 package com.atlasinside.opensearch.types;
 
 import com.atlasinside.opensearch.enums.IndexSortableProperty;
+import org.apache.commons.collections4.MapUtils;
 import org.opensearch.client.opensearch._types.SortOrder;
-import org.springframework.util.CollectionUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +39,7 @@ public class IndexSort {
 
     @Override
     public String toString() {
-        if (CollectionUtils.isEmpty(orders))
+        if (MapUtils.isEmpty(orders))
             return "";
         return orders.entrySet().stream()
                 .map(e -> e.getKey() + ":" + e.getValue().jsonValue())
@@ -55,7 +55,7 @@ public class IndexSort {
         }
 
         public IndexSort build() {
-            if (CollectionUtils.isEmpty(orders))
+            if (MapUtils.isEmpty(orders))
                 throw new RuntimeException("You need to define at least one property to sort");
             return new IndexSort(orders);
         }

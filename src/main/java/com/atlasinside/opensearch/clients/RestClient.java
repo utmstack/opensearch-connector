@@ -1,76 +1,97 @@
 package com.atlasinside.opensearch.clients;
 
-import io.netty.channel.ChannelOption;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.handler.timeout.WriteTimeoutHandler;
+import com.atlasinside.opensearch.types.RestClientResponse;
+import com.atlasinside.opensearch.util.Constants;
+import com.google.gson.Gson;
+import okhttp3.*;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 public class RestClient {
     private static final String CLASSNAME = "RestClient";
-
-    private final WebClient client;
+    private final OkHttpClient client;
+    private static String BASEURL;
+    private static String USER;
+    private static String PASS;
 
     public RestClient(String user, String password, HttpHost host) {
-        final String ctx = CLASSNAME + ".build";
-        try {
-            final HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-            headers.add(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
-
-            if (StringUtils.hasText(user) && StringUtils.hasText(password))
-                headers.setBasicAuth(user, password);
-
-            final ExchangeStrategies strategies = ExchangeStrategies.builder()
-                    .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
-                    .build();
-
-            SslContext sslContext = SslContextBuilder.forClient()
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .build();
-
-            HttpClient httpClient = HttpClient.create()
-                    .secure(s -> s.sslContext(sslContext))
-                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000)
-                    .doOnConnected(connection -> {
-                        connection.addHandlerLast(new ReadTimeoutHandler(30));
-                        connection.addHandlerLast(new WriteTimeoutHandler(30));
-                    });
-
-            client = WebClient.builder().baseUrl(host.toString())
-                    .defaultHeaders(h -> h.addAll(headers))
-                    .clientConnector(new ReactorClientHttpConnector(httpClient))
-                    .exchangeStrategies(strategies)
-                    .build();
-        } catch (Exception e) {
-            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
-        }
+        BASEURL = host.toString();
+        USER = user;
+        PASS = password;
+        client = new OkHttpClient.Builder()
+                .addInterceptor(new RequestHandlerInterceptor())
+                .addInterceptor(new ErrorHandlerInterceptor())
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
     }
 
     /**
      * Execute a GET request
      *
      * @param uri         Uri of the request
-     * @param type        Type to map the response
      * @param queryParams A map with the query parameters
-     * @param <T>         Generic representation of the response
      */
-    public <T> T get(String uri, MultiValueMap<String, String> queryParams, Class<T> type) {
+    public RestClientResponse get(String uri, Map<String, String> queryParams) {
         final String ctx = CLASSNAME + ".get";
-        return client.get().uri(uriBuilder -> uriBuilder.path(uri).queryParams(queryParams).build())
-                .retrieve().onStatus(HttpStatus::isError, response -> response.bodyToMono(String.class)
-                        .handle((error, sink) -> sink.error(new RuntimeException(ctx + ": " + error))))
-                .bodyToMono(type).share().block();
+        try {
+            HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri)).newBuilder();
+
+            if (!MapUtils.isEmpty(queryParams))
+                queryParams.forEach(urlBuilder::addEncodedQueryParameter);
+
+            Request request = new Request.Builder().url(urlBuilder.build()).build();
+
+            Response rs = client.newCall(request).execute();
+
+            return new RestClientResponse(rs.code(), rs.body().string());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class ErrorHandlerInterceptor implements Interceptor {
+        @NotNull
+        @Override
+        public Response intercept(@NotNull Chain chain) throws IOException {
+            Response response = chain.proceed(chain.request());
+
+            if (!response.isSuccessful()) {
+                Gson gson = new Gson();
+                String body = gson.toJson(new RestClientResponse(response.code(), "The response from the server was not OK"));
+                ResponseBody responseBody = ResponseBody.create(body, MediaType.parse(Constants.APPLICATION_JSON_VALUE));
+
+                ResponseBody originalBody = response.body();
+                if (originalBody != null) {
+                    originalBody.close();
+                }
+
+                return response.newBuilder().body(responseBody).build();
+            }
+            return response;
+        }
+    }
+
+    private static class RequestHandlerInterceptor implements Interceptor {
+        @NotNull
+        @Override
+        public Response intercept(@NotNull Chain chain) throws IOException {
+            Request originalRequest = chain.request();
+            Request.Builder requestBuilder = originalRequest.newBuilder()
+                    .header(Constants.CONTENT_TYPE, Constants.APPLICATION_JSON_VALUE)
+                    .header(Constants.ACCEPT, Constants.APPLICATION_JSON_VALUE);
+
+            if (!StringUtils.isEmpty(USER) && !StringUtils.isEmpty(PASS))
+                requestBuilder.header(Constants.AUTHORIZATION, Credentials.basic(USER, PASS, Charset.defaultCharset()));
+
+            return chain.proceed(requestBuilder.build());
+        }
     }
 }

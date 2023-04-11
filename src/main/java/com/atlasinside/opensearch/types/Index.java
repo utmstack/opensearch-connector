@@ -1,16 +1,17 @@
 package com.atlasinside.opensearch.types;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
+import com.google.gson.annotations.SerializedName;
 
 public class Index {
     private String health;
     private String status;
     private String index;
+    @SerializedName("docs.count")
     private Long docsCount;
+    @SerializedName("store.size")
     private String size;
+    @SerializedName("creation.date.string")
     private String creationDate;
-
 
 
     public String getHealth() {
@@ -37,32 +38,28 @@ public class Index {
         this.index = index;
     }
 
-    @JsonGetter("docsCount")
     public Long getDocsCount() {
         return docsCount;
     }
 
-    @JsonSetter("docs.count")
+
     public void setDocsCount(Long docsCount) {
         this.docsCount = docsCount;
     }
 
-    @JsonGetter("size")
     public String getSize() {
         return size;
     }
 
-    @JsonSetter("store.size")
+
     public void setSize(String size) {
         this.size = size;
     }
 
-    @JsonGetter("creationDate")
     public String getCreationDate() {
         return creationDate;
     }
 
-    @JsonSetter("creation.date.string")
     public void setCreationDate(String creationDate) {
         this.creationDate = creationDate;
     }

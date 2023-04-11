@@ -9,7 +9,12 @@ import com.atlasinside.opensearch.parsers.TermAggregateParser;
 import com.atlasinside.opensearch.types.BucketAggregation;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
+import com.atlasinside.opensearch.types.RestClientResponse;
 import com.atlasinside.opensearch.util.IndexUtils;
+import com.google.gson.Gson;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.InlineScript;
@@ -22,7 +27,6 @@ import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
-import org.springframework.util.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -158,9 +162,6 @@ public class OpenSearch {
                                             TermOrder termOrder, SortOrder sortOrder) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getFieldValues";
         try {
-            Assert.hasText(field, "The Field parameter must not be null or empty");
-            Assert.hasText(index, "The Index parameter must not be null or empty");
-
             final String AGG_NAME = "field_values";
             Map<String, SortOrder> order = Map.of(termOrder.jsonValue(), sortOrder);
             org.opensearch.client.opensearch._types.aggregations.Aggregation fieldValuesAgg = org.opensearch.client.opensearch._types.aggregations.Aggregation.of(agg -> agg.terms(t -> t.field(field)
@@ -189,10 +190,9 @@ public class OpenSearch {
     public Map<String, String> getIndexProperties(String index) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getIndexProperties";
         try {
-            Assert.hasText(index, "The Index parameter must not be null or empty");
             Map<String, IndexMappingRecord> mapping = client.indices().getMapping(f -> f.index(index)).result();
 
-            if (CollectionUtils.isEmpty(mapping))
+            if (MapUtils.isEmpty(mapping))
                 return Collections.emptyMap();
 
             Map<String, String> result = new TreeMap<>();
@@ -218,19 +218,20 @@ public class OpenSearch {
             if (Objects.isNull(indexSort))
                 indexSort = IndexSort.unSorted();
 
-            if (!StringUtils.hasText(pattern))
+            if (StringUtils.isEmpty(pattern))
                 pattern = "*";
 
             String uri = String.format("/_cat/indices/%1$s", pattern);
 
-            MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
-            queryParams.set("format", "json");
-            queryParams.set("h", "index,docs.count,health,store.size,status,creation.date.string");
+            Map<String, String> queryParams = new HashMap<>();
+            queryParams.put("format", "json");
+            queryParams.put("h", "index,docs.count,health,store.size,status,creation.date.string");
 
             if (indexSort.isSorted())
-                queryParams.set("s", indexSort.toString());
+                queryParams.put("s", indexSort.toString());
 
-            return Arrays.asList(restClient.get(uri, queryParams, Index[].class));
+            RestClientResponse rs = restClient.get(uri, queryParams);
+            return Arrays.asList(new Gson().fromJson(rs.getData(), Index[].class));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }

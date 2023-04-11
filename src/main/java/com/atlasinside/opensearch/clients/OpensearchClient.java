@@ -1,5 +1,6 @@
 package com.atlasinside.opensearch.clients;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -12,7 +13,6 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.transport.rest_client.RestClientTransport;
-import org.springframework.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
 import java.util.Objects;
@@ -31,7 +31,7 @@ public class OpensearchClient {
             final SSLContext sslContext = sslBuilder.build();
 
             RestClient restClient;
-            if (StringUtils.hasText(user) && StringUtils.hasText(password)) {
+            if (!StringUtils.isEmpty(user) && !StringUtils.isEmpty(password)) {
                 CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
                 restClient = RestClient.builder(host)
