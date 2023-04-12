@@ -9,9 +9,7 @@ import com.atlasinside.opensearch.parsers.TermAggregateParser;
 import com.atlasinside.opensearch.types.BucketAggregation;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
-import com.atlasinside.opensearch.types.RestClientResponse;
 import com.atlasinside.opensearch.util.IndexUtils;
-import com.google.gson.Gson;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +20,8 @@ import org.opensearch.client.opensearch._types.Refresh;
 import org.opensearch.client.opensearch._types.Script;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch.cat.IndicesRequest;
+import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
@@ -212,7 +212,7 @@ public class OpenSearch {
      * @return A list of ${@link Index}
      * @throws OpenSearchException In case of any error
      */
-    public List<Index> getIndices(String pattern, IndexSort indexSort) throws OpenSearchException {
+    public List<IndicesRecord> getIndices(String pattern, IndexSort indexSort) throws OpenSearchException {
         final String ctx = CLASSNAME + ".getIndices";
         try {
             if (Objects.isNull(indexSort))
@@ -221,22 +221,16 @@ public class OpenSearch {
             if (StringUtils.isEmpty(pattern))
                 pattern = "*";
 
-            String uri = String.format("/_cat/indices/%1$s", pattern);
+            IndicesRequest.Builder rq = new IndicesRequest.Builder();
+            rq.index(pattern);
+            rq.headers("index,docs.count,health,store.size,status,creation.date.string");
+            rq.sort(indexSort.toString());
 
-            Map<String, String> queryParams = new HashMap<>();
-            queryParams.put("format", "json");
-            queryParams.put("h", "index,docs.count,health,store.size,status,creation.date.string");
-
-            if (indexSort.isSorted())
-                queryParams.put("s", indexSort.toString());
-
-            RestClientResponse rs = restClient.get(uri, queryParams);
-            return Arrays.asList(new Gson().fromJson(rs.getData(), Index[].class));
+            return client.cat().indices(rq.build()).valueBody();
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
-
 
     public static Builder builder() {
         return new Builder();
