@@ -26,7 +26,7 @@ public class TermAggregateParser {
                     break;
                 case Lterms:
                     aggregate.lterms().buckets().array()
-                            .forEach(bucket -> result.add(new BucketAggregation(bucket.key(),
+                            .forEach(bucket -> result.add(new BucketAggregation(bucket.keyAsString(),
                                     bucket.docCount(), bucket.aggregations())));
                     break;
                 case Dterms:
