@@ -1,6 +1,7 @@
 package com.atlasinside.opensearch.parsers;
 
 import com.atlasinside.opensearch.types.BucketAggregation;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 
 import java.util.ArrayList;
@@ -26,13 +27,17 @@ public class TermAggregateParser {
                     break;
                 case Lterms:
                     aggregate.lterms().buckets().array()
-                            .forEach(bucket -> result.add(new BucketAggregation(bucket.keyAsString(),
-                                    bucket.docCount(), bucket.aggregations())));
+                            .forEach(bucket -> {
+                                String key = StringUtils.isEmpty(bucket.keyAsString()) ? bucket.key() : bucket.keyAsString();
+                                result.add(new BucketAggregation(key, bucket.docCount(), bucket.aggregations()));
+                            });
                     break;
                 case Dterms:
                     aggregate.dterms().buckets().array()
-                            .forEach(bucket -> result.add(new BucketAggregation(bucket.keyAsString(),
-                                    bucket.docCount(), bucket.aggregations())));
+                            .forEach(bucket -> {
+                                String key = StringUtils.isEmpty(bucket.keyAsString()) ? String.valueOf(bucket.key()) : bucket.keyAsString();
+                                result.add(new BucketAggregation(key, bucket.docCount(), bucket.aggregations()));
+                            });
                     break;
             }
             return result;
