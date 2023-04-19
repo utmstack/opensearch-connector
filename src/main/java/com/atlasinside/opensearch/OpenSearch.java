@@ -1,7 +1,6 @@
 package com.atlasinside.opensearch;
 
 import com.atlasinside.opensearch.clients.OpensearchClient;
-import com.atlasinside.opensearch.clients.RestClient;
 import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
@@ -15,13 +14,12 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.opensearch._types.InlineScript;
-import org.opensearch.client.opensearch._types.Refresh;
-import org.opensearch.client.opensearch._types.Script;
-import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.opensearch._types.*;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.cat.IndicesRequest;
+import org.opensearch.client.opensearch.cat.NodesRequest;
 import org.opensearch.client.opensearch.cat.indices.IndicesRecord;
+import org.opensearch.client.opensearch.cat.nodes.NodesRecord;
 import org.opensearch.client.opensearch.core.IndexResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
@@ -34,12 +32,9 @@ import java.util.stream.Collectors;
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
     private final OpenSearchClient client;
-    private final RestClient restClient;
 
-
-    private OpenSearch(OpenSearchClient client, RestClient restClient) {
+    private OpenSearch(OpenSearchClient client) {
         this.client = client;
-        this.restClient = restClient;
     }
 
     /**
@@ -221,12 +216,33 @@ public class OpenSearch {
             if (StringUtils.isEmpty(pattern))
                 pattern = "*";
 
+            final String headers = "index,docs.count,health,store.size,status,creation.date.string";
             IndicesRequest.Builder rq = new IndicesRequest.Builder();
             rq.index(pattern);
-            rq.headers("index,docs.count,health,store.size,status,creation.date.string");
+            rq.headers(headers);
             rq.sort(indexSort.toString());
 
             return client.cat().indices(rq.build()).valueBody();
+        } catch (Exception e) {
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Returns information about a cluster’s nodes
+     *
+     * @param sizeUnit Unit used to display byte values.
+     * @return A list of ${@link NodesRecord} with the status information for each node of the cluster
+     * @throws OpenSearchException In case of any error
+     */
+    public List<NodesRecord> getClusterNodesInfo(Bytes sizeUnit) throws OpenSearchException {
+        final String ctx = CLASSNAME + ".getNodes";
+        try {
+            final String headers = "master,ip,disk.total,disk.used,disk.used_percent,disk.avail,name,ram.percent,ram.current,ram.max,cpu,heap.current,heap.percent,heap.max";
+            NodesRequest.Builder rq = new NodesRequest.Builder();
+            rq.headers(headers);
+            rq.bytes(sizeUnit);
+            return client.cat().nodes(rq.build()).valueBody();
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
@@ -255,9 +271,7 @@ public class OpenSearch {
         public OpenSearch build() {
             final String ctx = CLASSNAME + ".build";
             try {
-                return new OpenSearch(
-                        OpensearchClient.build(user, password, host),
-                        new RestClient(user, password, host));
+                return new OpenSearch(OpensearchClient.build(user, password, host));
             } catch (Exception e) {
                 throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
             }
