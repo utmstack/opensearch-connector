@@ -6,6 +6,7 @@ import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
 import com.atlasinside.opensearch.parsers.TermAggregateParser;
 import com.atlasinside.opensearch.types.BucketAggregation;
+import com.atlasinside.opensearch.types.ElasticCluster;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
 import com.atlasinside.opensearch.util.IndexUtils;
@@ -26,6 +27,7 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -231,18 +233,22 @@ public class OpenSearch {
     /**
      * Returns information about a cluster’s nodes
      *
-     * @param sizeUnit Unit used to display byte values.
      * @return A list of ${@link NodesRecord} with the status information for each node of the cluster
      * @throws OpenSearchException In case of any error
      */
-    public List<NodesRecord> getClusterNodesInfo(Bytes sizeUnit) throws OpenSearchException {
+    public Optional<ElasticCluster> getClusterNodesInfo() throws OpenSearchException {
         final String ctx = CLASSNAME + ".getNodes";
         try {
             final String headers = "master,ip,disk.total,disk.used,disk.used_percent,disk.avail,name,ram.percent,ram.current,ram.max,cpu,heap.current,heap.percent,heap.max";
             NodesRequest.Builder rq = new NodesRequest.Builder();
             rq.headers(headers);
-            rq.bytes(sizeUnit);
-            return client.cat().nodes(rq.build()).valueBody();
+            rq.bytes(Bytes.MegaBytes);
+
+            List<NodesRecord> nodes = client.cat().nodes(rq.build()).valueBody();
+            if (CollectionUtils.isEmpty(nodes))
+                return Optional.empty();
+
+            return Optional.of(new ElasticCluster(nodes));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
