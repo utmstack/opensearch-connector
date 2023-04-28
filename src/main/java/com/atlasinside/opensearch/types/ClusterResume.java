@@ -10,7 +10,7 @@ public class ClusterResume {
     private Float ramCurrent;
     private Float heapMax;
     private Float heapCurrent;
-    private List<ElasticNode> nodes;
+    private final List<ElasticNode> nodes;
 
         public ClusterResume(List<ElasticNode> nodes) {
             this.nodes = nodes;

@@ -3,6 +3,8 @@ package com.atlasinside.opensearch.clients;
 import com.atlasinside.opensearch.types.RestClientResponse;
 import com.atlasinside.opensearch.util.Constants;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import okhttp3.*;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -10,7 +12,10 @@ import org.apache.http.HttpHost;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -40,20 +45,19 @@ public class RestClient {
      * @param queryParams A map with the query parameters
      */
     public RestClientResponse get(String uri, Map<String, String> queryParams) {
-        final String ctx = CLASSNAME + ".get";
         try {
             HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri)).newBuilder();
 
             if (!MapUtils.isEmpty(queryParams))
                 queryParams.forEach(urlBuilder::addEncodedQueryParameter);
-
             Request request = new Request.Builder().url(urlBuilder.build()).build();
-
-            Response rs = client.newCall(request).execute();
-
-            return new RestClientResponse(rs.code(), rs.body().string());
+            RestClientResponse response;
+            try (Response rs = client.newCall(request).execute()) {
+                response = new RestClientResponse(rs.code(), Objects.requireNonNull(rs.body(), "Response body is null").string());
+            }
+            return response;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e.getLocalizedMessage());
         }
     }
 

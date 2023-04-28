@@ -1,6 +1,7 @@
 package com.atlasinside.opensearch;
 
 import com.atlasinside.opensearch.clients.OpensearchClient;
+import com.atlasinside.opensearch.clients.RestClient;
 import com.atlasinside.opensearch.enums.HttpScheme;
 import com.atlasinside.opensearch.enums.TermOrder;
 import com.atlasinside.opensearch.exceptions.OpenSearchException;
@@ -34,9 +35,15 @@ import java.util.stream.Collectors;
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
     private final OpenSearchClient client;
+    private RestClient restClient;
 
     private OpenSearch(OpenSearchClient client) {
         this.client = client;
+    }
+
+    private OpenSearch(OpenSearchClient client, RestClient restClient) {
+        this.client = client;
+        this.restClient = restClient;
     }
 
     /**
@@ -277,7 +284,8 @@ public class OpenSearch {
         public OpenSearch build() {
             final String ctx = CLASSNAME + ".build";
             try {
-                return new OpenSearch(OpensearchClient.build(user, password, host));
+                return new OpenSearch(OpensearchClient.build(user, password, host),
+                        new RestClient(user, password, host));
             } catch (Exception e) {
                 throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
             }

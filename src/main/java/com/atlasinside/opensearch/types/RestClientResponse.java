@@ -1,27 +1,19 @@
 package com.atlasinside.opensearch.types;
 
 public class RestClientResponse {
-    private int code;
-    private String data;
+    private final int responseCode;
+    private final String body;
 
-    public RestClientResponse(int code, String data) {
-        this.code = code;
-        this.data = data;
+    public RestClientResponse(int responseCode, String body) {
+        this.responseCode = responseCode;
+        this.body = body;
     }
 
-    public int getCode() {
-        return code;
+    public int getResponseCode() {
+        return responseCode;
     }
 
-    public void setCode(int code) {
-        this.code = code;
-    }
-
-    public String getData() {
-        return data;
-    }
-
-    public void setData(String data) {
-        this.data = data;
+    public String getRawBody() {
+        return body;
     }
 }
