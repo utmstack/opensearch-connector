@@ -11,6 +11,7 @@ import com.atlasinside.opensearch.types.ElasticCluster;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
 import com.atlasinside.opensearch.util.IndexUtils;
+import com.google.gson.reflect.TypeToken;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,23 +29,19 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
     private final OpenSearchClient client;
-    private RestClient restClient;
-
-    private OpenSearch(OpenSearchClient client) {
-        this.client = client;
-    }
+    private final RestClient restClient;
 
     private OpenSearch(OpenSearchClient client, RestClient restClient) {
         this.client = client;
         this.restClient = restClient;
     }
+
 
     /**
      * Perform a search operation
@@ -258,6 +255,24 @@ public class OpenSearch {
             return Optional.of(new ElasticCluster(nodes));
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * You can perform a direct GET request to the opensearch instance you are connected
+     *
+     * @param uri          The URI of the request
+     * @param queryParams  A map with any query param you need
+     * @param responseType A ${@link TypeToken} to represents a generic type
+     * @param <T>          Represent the type of the generic object
+     * @return An object of type T
+     */
+    public <T> T executeGetRequest(String uri, Map<String, String> queryParams, TypeToken<T> responseType) {
+        final String ctx = CLASSNAME + ".performRawGetRequest";
+        try {
+            return restClient.get(uri, queryParams, responseType);
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
