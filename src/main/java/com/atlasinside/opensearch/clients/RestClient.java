@@ -42,6 +42,9 @@ public class RestClient {
     public <T> T get(String uri, Map<String, String> queryParams, TypeToken<T> type) {
         final String ctx = CLASSNAME + ".get";
         try {
+            if (StringUtils.isNotBlank(uri) && !uri.startsWith("/"))
+                uri = "/" + uri;
+
             HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri))
                     .newBuilder();
 
@@ -49,10 +52,45 @@ public class RestClient {
                 queryParams.forEach(urlBuilder::addEncodedQueryParameter);
             Request request = new Request.Builder().url(urlBuilder.build()).build();
 
-            T result;
+            T result = null;
             try (Response rs = client.newCall(request).execute()) {
                 if (!rs.isSuccessful())
                     throw new Exception(rs.body() != null ? rs.body().string() : rs.toString());
+                if (type == null || type.getRawType().getSimpleName().equals("Void"))
+                    return result;
+                Gson g = new Gson();
+                result = g.fromJson(rs.body().string(), type.getType());
+            }
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
+    public <T> T put(String uri, Map<String, String> queryParams, Object body, TypeToken<T> type) {
+        final String ctx = CLASSNAME + ".put";
+        try {
+            if (StringUtils.isNotBlank(uri) && !uri.startsWith("/"))
+                uri = "/" + uri;
+
+            HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri))
+                    .newBuilder();
+
+            if (!MapUtils.isEmpty(queryParams))
+                queryParams.forEach(urlBuilder::addEncodedQueryParameter);
+
+            MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+            Request request = new Request.Builder()
+                    .url(urlBuilder.build())
+                    .put(RequestBody.create((String) body, JSON))
+                    .build();
+
+            T result = null;
+            try (Response rs = client.newCall(request).execute()) {
+                if (!rs.isSuccessful())
+                    throw new Exception(rs.body() != null ? rs.body().string() : rs.toString());
+                if (type == null || type.getRawType().getSimpleName().equals("Void"))
+                    return result;
                 Gson g = new Gson();
                 result = g.fromJson(rs.body().string(), type.getType());
             }

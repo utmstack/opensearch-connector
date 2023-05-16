@@ -276,6 +276,25 @@ public class OpenSearch {
         }
     }
 
+    /**
+     * You can perform a direct PUT request to the opensearch instance you are connected
+     *
+     * @param uri          The URI of the request
+     * @param queryParams  A map with any query param you need
+     * @param body         The body of the request
+     * @param responseType A ${@link TypeToken} to represents a generic type
+     * @param <T>          Represent the type of the generic object
+     * @return An object of type T
+     */
+    public <T> T executePutRequest(String uri, Map<String, String> queryParams, Object body, TypeToken<T> responseType) {
+        final String ctx = CLASSNAME + ".executePutRequest";
+        try {
+            return restClient.put(uri, queryParams, body, responseType);
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
     public static Builder builder() {
         return new Builder();
     }
