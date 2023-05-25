@@ -1,6 +1,7 @@
 package com.atlasinside.opensearch.clients;
 
 import com.atlasinside.opensearch.util.Constants;
+import com.google.gson.Gson;
 import okhttp3.*;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -64,7 +65,7 @@ public class RestClient {
             MediaType JSON = MediaType.parse("application/json; charset=utf-8");
             Request request = new Request.Builder()
                     .url(urlBuilder.build())
-                    .put(RequestBody.create((String) body, JSON))
+                    .put(RequestBody.create(new Gson().toJson(body), JSON))
                     .build();
             return client.newCall(request).execute();
         } catch (Exception e) {
