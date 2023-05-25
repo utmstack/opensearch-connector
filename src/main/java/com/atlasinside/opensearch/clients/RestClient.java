@@ -1,8 +1,6 @@
 package com.atlasinside.opensearch.clients;
 
 import com.atlasinside.opensearch.util.Constants;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import okhttp3.*;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -28,7 +26,6 @@ public class RestClient {
         PASS = password;
         client = new OkHttpClient.Builder()
                 .addInterceptor(new RequestHandlerInterceptor())
-                .addInterceptor(new ErrorHandlerInterceptor())
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build();
     }
@@ -39,84 +36,39 @@ public class RestClient {
      * @param uri         Uri of the request
      * @param queryParams A map with the query parameters
      */
-    public <T> T get(String uri, Map<String, String> queryParams, TypeToken<T> type) {
+    public Response get(String uri, Map<String, String> queryParams) {
         final String ctx = CLASSNAME + ".get";
         try {
             if (StringUtils.isNotBlank(uri) && !uri.startsWith("/"))
                 uri = "/" + uri;
-
             HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri))
                     .newBuilder();
-
             if (!MapUtils.isEmpty(queryParams))
                 queryParams.forEach(urlBuilder::addEncodedQueryParameter);
             Request request = new Request.Builder().url(urlBuilder.build()).build();
-
-            T result = null;
-            try (Response rs = client.newCall(request).execute()) {
-                if (!rs.isSuccessful())
-                    throw new Exception(rs.body() != null ? rs.body().string() : rs.toString());
-                if (type == null || type.getRawType().getSimpleName().equals("Void"))
-                    return result;
-                Gson g = new Gson();
-                result = g.fromJson(rs.body().string(), type.getType());
-            }
-            return result;
+            return client.newCall(request).execute();
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 
-    public <T> T put(String uri, Map<String, String> queryParams, Object body, TypeToken<T> type) {
+    public Response put(String uri, Map<String, String> queryParams, Object body) {
         final String ctx = CLASSNAME + ".put";
         try {
             if (StringUtils.isNotBlank(uri) && !uri.startsWith("/"))
                 uri = "/" + uri;
-
             HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri))
                     .newBuilder();
-
             if (!MapUtils.isEmpty(queryParams))
                 queryParams.forEach(urlBuilder::addEncodedQueryParameter);
-
             MediaType JSON = MediaType.parse("application/json; charset=utf-8");
             Request request = new Request.Builder()
                     .url(urlBuilder.build())
                     .put(RequestBody.create((String) body, JSON))
                     .build();
-
-            T result = null;
-            try (Response rs = client.newCall(request).execute()) {
-                if (!rs.isSuccessful())
-                    throw new Exception(rs.body() != null ? rs.body().string() : rs.toString());
-                if (type == null || type.getRawType().getSimpleName().equals("Void"))
-                    return result;
-                Gson g = new Gson();
-                result = g.fromJson(rs.body().string(), type.getType());
-            }
-            return result;
+            return client.newCall(request).execute();
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
-        }
-    }
-
-    private static class ErrorHandlerInterceptor implements Interceptor {
-        @NotNull
-        @Override
-        public Response intercept(@NotNull Chain chain) throws IOException {
-            Response response = chain.proceed(chain.request());
-
-            if (!response.isSuccessful()) {
-                String msg = !Objects.isNull(response.body()) ? response.body().string() : "Request fail with no information";
-                ResponseBody responseBody = ResponseBody.create(msg, MediaType.parse(Constants.APPLICATION_JSON_VALUE));
-                ResponseBody originalBody = response.body();
-                if (originalBody != null) {
-                    originalBody.close();
-                }
-
-                return response.newBuilder().body(responseBody).build();
-            }
-            return response;
         }
     }
 

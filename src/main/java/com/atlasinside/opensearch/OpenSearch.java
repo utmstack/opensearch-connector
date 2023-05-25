@@ -12,6 +12,7 @@ import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
 import com.atlasinside.opensearch.util.IndexUtils;
 import com.google.gson.reflect.TypeToken;
+import okhttp3.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -261,16 +262,14 @@ public class OpenSearch {
     /**
      * You can perform a direct GET request to the opensearch instance you are connected
      *
-     * @param uri          The URI of the request
-     * @param queryParams  A map with any query param you need
-     * @param responseType A ${@link TypeToken} to represents a generic type
-     * @param <T>          Represent the type of the generic object
+     * @param uri         The URI of the request
+     * @param queryParams A map with any query param you need
      * @return An object of type T
      */
-    public <T> T executeGetRequest(String uri, Map<String, String> queryParams, TypeToken<T> responseType) {
+    public Response executeGetRequest(String uri, Map<String, String> queryParams) {
         final String ctx = CLASSNAME + ".performRawGetRequest";
         try {
-            return restClient.get(uri, queryParams, responseType);
+            return restClient.get(uri, queryParams);
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
@@ -279,17 +278,15 @@ public class OpenSearch {
     /**
      * You can perform a direct PUT request to the opensearch instance you are connected
      *
-     * @param uri          The URI of the request
-     * @param queryParams  A map with any query param you need
-     * @param body         The body of the request
-     * @param responseType A ${@link TypeToken} to represents a generic type
-     * @param <T>          Represent the type of the generic object
+     * @param uri         The URI of the request
+     * @param queryParams A map with any query param you need
+     * @param body        The body of the request
      * @return An object of type T
      */
-    public <T> T executePutRequest(String uri, Map<String, String> queryParams, Object body, TypeToken<T> responseType) {
+    public Response executePutRequest(String uri, Map<String, String> queryParams, Object body) {
         final String ctx = CLASSNAME + ".executePutRequest";
         try {
-            return restClient.put(uri, queryParams, body, responseType);
+            return restClient.put(uri, queryParams, body);
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
