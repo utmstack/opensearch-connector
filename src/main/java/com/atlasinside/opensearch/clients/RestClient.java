@@ -73,6 +73,26 @@ public class RestClient {
         }
     }
 
+    public Response post(String uri, Map<String, String> queryParams, Object body) {
+        final String ctx = CLASSNAME + ".post";
+        try {
+            if (StringUtils.isNotBlank(uri) && !uri.startsWith("/"))
+                uri = "/" + uri;
+            HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(BASEURL + uri))
+                    .newBuilder();
+            if (!MapUtils.isEmpty(queryParams))
+                queryParams.forEach(urlBuilder::addEncodedQueryParameter);
+            MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+            Request request = new Request.Builder()
+                    .url(urlBuilder.build())
+                    .post(RequestBody.create(new Gson().toJson(body), JSON))
+                    .build();
+            return client.newCall(request).execute();
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
     private static class RequestHandlerInterceptor implements Interceptor {
         @NotNull
         @Override
