@@ -11,7 +11,6 @@ import com.atlasinside.opensearch.types.ElasticCluster;
 import com.atlasinside.opensearch.types.Index;
 import com.atlasinside.opensearch.types.IndexSort;
 import com.atlasinside.opensearch.util.IndexUtils;
-import com.google.gson.reflect.TypeToken;
 import okhttp3.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -287,6 +286,23 @@ public class OpenSearch {
         final String ctx = CLASSNAME + ".executePutRequest";
         try {
             return restClient.put(uri, queryParams, body);
+        } catch (Exception e) {
+            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * You can perform a direct POST request to the opensearch instance you are connected
+     *
+     * @param uri         The URI of the request
+     * @param queryParams A map with any query param you need
+     * @param body        The body of the request
+     * @return A ${@link Response} object
+     */
+    public Response executePostRequest(String uri, Map<String, String> queryParams, Object body) {
+        final String ctx = CLASSNAME + ".executePostRequest";
+        try {
+            return restClient.post(uri, queryParams, body);
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }
