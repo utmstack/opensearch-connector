@@ -13,4 +13,4 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
       - name: Get tag
-        run: echo "${GITHUB_REF/refs/tags}"
+        run: echo "${GITHUB_REF_NAME}"
