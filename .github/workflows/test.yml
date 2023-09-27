@@ -1,0 +1,16 @@
+name: Publish this application as a package to GitHub Packages
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'adopt'
+      - name: Get tag
+        run: echo "${GITHUB_REF/refs/tags}"
