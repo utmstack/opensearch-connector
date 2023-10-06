@@ -1,4 +1,4 @@
-package com.atlasinside.opensearch.clients;
+package com.utmstack.opensearch_connector.clients;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;

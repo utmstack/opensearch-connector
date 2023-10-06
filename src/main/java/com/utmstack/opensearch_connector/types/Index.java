@@ -1,4 +1,4 @@
-package com.atlasinside.opensearch.types;
+package com.utmstack.opensearch_connector.types;
 
 import com.google.gson.annotations.SerializedName;
 

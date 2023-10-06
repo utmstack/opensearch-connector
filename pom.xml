@@ -13,7 +13,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/AtlasInsideCorp/atlasinside-opensearch</url>
+            <url>https://maven.pkg.github.com/utmstack/opensearch-connector</url>
         </repository>
     </distributionManagement>
 

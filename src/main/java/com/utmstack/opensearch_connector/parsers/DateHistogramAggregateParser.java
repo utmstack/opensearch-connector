@@ -1,6 +1,6 @@
-package com.atlasinside.opensearch.parsers;
+package com.utmstack.opensearch_connector.parsers;
 
-import com.atlasinside.opensearch.types.BucketAggregation;
+import com.utmstack.opensearch_connector.types.BucketAggregation;
 import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 import org.opensearch.client.opensearch._types.aggregations.DateHistogramBucket;
 

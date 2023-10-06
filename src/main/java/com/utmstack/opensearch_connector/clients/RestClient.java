@@ -1,7 +1,7 @@
-package com.atlasinside.opensearch.clients;
+package com.utmstack.opensearch_connector.clients;
 
-import com.atlasinside.opensearch.util.Constants;
 import com.google.gson.Gson;
+import com.utmstack.opensearch_connector.util.Constants;
 import okhttp3.*;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
