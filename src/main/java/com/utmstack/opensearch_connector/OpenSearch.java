@@ -1,16 +1,16 @@
-package com.atlasinside.opensearch;
+package com.utmstack.opensearch_connector;
 
-import com.atlasinside.opensearch.clients.OpensearchClient;
-import com.atlasinside.opensearch.clients.RestClient;
-import com.atlasinside.opensearch.enums.HttpScheme;
-import com.atlasinside.opensearch.enums.TermOrder;
-import com.atlasinside.opensearch.exceptions.OpenSearchException;
-import com.atlasinside.opensearch.parsers.TermAggregateParser;
-import com.atlasinside.opensearch.types.BucketAggregation;
-import com.atlasinside.opensearch.types.ElasticCluster;
-import com.atlasinside.opensearch.types.Index;
-import com.atlasinside.opensearch.types.IndexSort;
-import com.atlasinside.opensearch.util.IndexUtils;
+import com.utmstack.opensearch_connector.clients.OpensearchClient;
+import com.utmstack.opensearch_connector.clients.RestClient;
+import com.utmstack.opensearch_connector.enums.HttpMethod;
+import com.utmstack.opensearch_connector.enums.HttpScheme;
+import com.utmstack.opensearch_connector.enums.TermOrder;
+import com.utmstack.opensearch_connector.exceptions.OpenSearchException;
+import com.utmstack.opensearch_connector.parsers.TermAggregateParser;
+import com.utmstack.opensearch_connector.types.BucketAggregation;
+import com.utmstack.opensearch_connector.types.ElasticCluster;
+import com.utmstack.opensearch_connector.types.IndexSort;
+import com.utmstack.opensearch_connector.util.IndexUtils;
 import okhttp3.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.*;
+import org.opensearch.client.opensearch._types.aggregations.Aggregation;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.cat.IndicesRequest;
 import org.opensearch.client.opensearch.cat.NodesRequest;
@@ -44,11 +45,11 @@ public class OpenSearch {
 
 
     /**
-     * Perform a search operation
+     * Perform a search operation and returns the results in the specified response type.
      *
-     * @param request      Search request definition
-     * @param responseType Type of the object that will be mapped in the response
-     * @return A {@link SearchResponse} object with the results of the performed operation
+     * @param request      The search request containing the query parameters.
+     * @param responseType The type of object to map the search results into.
+     * @return A {@link SearchResponse} containing the search results mapped to the specified type.
      * @throws OpenSearchException In case of any error
      */
     public <T> SearchResponse<T> search(SearchRequest request, Class<T> responseType) throws OpenSearchException {
@@ -61,11 +62,11 @@ public class OpenSearch {
     }
 
     /**
-     * Perform an update by query operation
+     * Performs an update-by-query operation in the OpenSearch engine with the specified query, index, and script.
      *
-     * @param query  Query to be executed
-     * @param index  Index where the update will be performed, you can use a pattern too
-     * @param script Script that perform the update
+     * @param query  The query to filter documents for the update operation.
+     * @param index  The name of the index where the documents are located.
+     * @param script The painless script to be executed as part of the update operation.
      * @return A {@link UpdateByQueryResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
      */
@@ -89,10 +90,10 @@ public class OpenSearch {
     }
 
     /**
-     * Perform an index operation
+     * Indexes a document of type T in the specified OpenSearch index.
      *
-     * @param index    Index where the index will be performed, you can use a pattern too
-     * @param document Information that will be indexed
+     * @param index    The name of the index where the document will be indexed.
+     * @param document The document of type T to be indexed.
      * @return A {@link IndexResponse} object with the results of the performed operation
      * @throws OpenSearchException In case of any error
      */
@@ -109,10 +110,10 @@ public class OpenSearch {
     }
 
     /**
-     * Check if some index exist
+     * Checks if an OpenSearch index with the specified name exists.
      *
-     * @param index Index where the indexing will be performed, you can use a pattern too
-     * @return True if index exist, false otherwise
+     * @param index The name of the index to check for existence.
+     * @return True if the index exists, false otherwise.
      * @throws OpenSearchException In case of any error
      */
     public boolean indexExist(String index) throws OpenSearchException {
@@ -127,9 +128,9 @@ public class OpenSearch {
 
 
     /**
-     * Removes one or more indices
+     * Deletes one or more OpenSearch indices based on the given list of index names.
      *
-     * @param indices The list of indices to delete
+     * @param indices A list of index names to be deleted.
      * @throws OpenSearchException In case of any error
      */
     public void deleteIndex(List<String> indices) throws OpenSearchException {
@@ -143,16 +144,16 @@ public class OpenSearch {
 
     /**
      * Search for the possible values of the field in the specified index or index pattern.
-     * If the field is a text, then you need to use it as a keyword.
+     * If the field is of type text, then you need to use it as a keyword.
      * <br>
      * Example:
      * <br>
-     * If you field {name} is a text then you need to pass the field as {name.keyword}
+     * If you field <strong>{@code name}</strong> is of type text, then you need to pass the field as <strong>{@code name.keyword}</strong>
      *
-     * @param field     Field to search for his values
+     * @param field     The name of the field to retrieve values from.
      * @param index     Index where the action will be performed, you can use a pattern too
      * @param query     Any query to perform before get the field values
-     * @param top       Top values you want to get
+     * @param top       The maximum number of values to retrieve (optional, use null for default).
      * @param termOrder There are to ways to order the results, alphabetically (by the values name)
      *                  and metrically (by the amount of documents)
      * @param sortOrder The way that you want to sort the results Asc or Desc
@@ -165,11 +166,10 @@ public class OpenSearch {
         try {
             final String AGG_NAME = "field_values";
             Map<String, SortOrder> order = Map.of(termOrder.jsonValue(), sortOrder);
-            org.opensearch.client.opensearch._types.aggregations.Aggregation fieldValuesAgg = org.opensearch.client.opensearch._types.aggregations.Aggregation.of(agg -> agg.terms(t -> t.field(field)
+            Aggregation fieldValuesAgg = Aggregation.of(agg -> agg.terms(t -> t.field(field)
                     .size(top != null ? top : 5).order(List.of(order))));
             SearchResponse<Object> response = client.search(s -> s
-                    .query(query).size(0)
-                    .index(index)
+                    .query(query).size(0).index(index)
                     .aggregations(Map.of(AGG_NAME, fieldValuesAgg)), Object.class);
 
             List<BucketAggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
@@ -182,7 +182,7 @@ public class OpenSearch {
     }
 
     /**
-     * Gets all fields of an index
+     * Retrieves properties and their data types from the mapping of an index.
      *
      * @param index Index or pattern from which fields will be extracted
      * @return A map with the name of a field as the key and type of field as the value
@@ -206,11 +206,11 @@ public class OpenSearch {
     }
 
     /**
-     * Gets a list with the index information that match with the pattern
+     * Retrieves a list of indices based on the provided pattern and sorting criteria.
      *
-     * @param pattern   The pattern or the index name from which you want to get the information
-     * @param indexSort Set of properties to sort the result
-     * @return A list of ${@link Index}
+     * @param pattern   The pattern to filter indices (default is "*").
+     * @param indexSort The sorting criteria for the retrieved indices (default is unsorted).
+     * @return A list of ${@link IndicesRecord}
      * @throws OpenSearchException In case of any error
      */
     public List<IndicesRecord> getIndices(String pattern, IndexSort indexSort) throws OpenSearchException {
@@ -235,9 +235,10 @@ public class OpenSearch {
     }
 
     /**
-     * Returns information about a cluster’s nodes
+     * Retrieves information about the OpenSearch cluster nodes.
      *
-     * @return A list of ${@link NodesRecord} with the status information for each node of the cluster
+     * @return An Optional containing an ElasticCluster object representing the cluster nodes' information,
+     * or an empty Optional if no nodes are found.
      * @throws OpenSearchException In case of any error
      */
     public Optional<ElasticCluster> getClusterNodesInfo() throws OpenSearchException {
@@ -259,50 +260,29 @@ public class OpenSearch {
     }
 
     /**
-     * You can perform a direct GET request to the opensearch instance you are connected
+     * You can perform a direct http request to the opensearch instance you are connected
      *
-     * @param uri         The URI of the request
-     * @param queryParams A map with any query param you need
-     * @return An object of type T
+     * @param uri         The URI of the request.
+     * @param queryParams A map with any query parameters needed for the request.
+     * @param body        The body of the request.
+     * @param method      The HTTP method to use. We just allow (GET, PUT, POST).
+     *                    The body object will be ignored for GET requests
+     * @return A {@link Response} object representing the HTTP response to the request.
+     * @throws RuntimeException In case of any error.
      */
-    public Response executeGetRequest(String uri, Map<String, String> queryParams) {
-        final String ctx = CLASSNAME + ".performRawGetRequest";
+    public Response executeHttpRequest(String uri, Map<String, String> queryParams, Object body, HttpMethod method) {
+        final String ctx = CLASSNAME + ".executeHttpRequest";
         try {
-            return restClient.get(uri, queryParams);
-        } catch (Exception e) {
-            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
-        }
-    }
-
-    /**
-     * You can perform a direct PUT request to the opensearch instance you are connected
-     *
-     * @param uri         The URI of the request
-     * @param queryParams A map with any query param you need
-     * @param body        The body of the request
-     * @return An object of type T
-     */
-    public Response executePutRequest(String uri, Map<String, String> queryParams, Object body) {
-        final String ctx = CLASSNAME + ".executePutRequest";
-        try {
-            return restClient.put(uri, queryParams, body);
-        } catch (Exception e) {
-            throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
-        }
-    }
-
-    /**
-     * You can perform a direct POST request to the opensearch instance you are connected
-     *
-     * @param uri         The URI of the request
-     * @param queryParams A map with any query param you need
-     * @param body        The body of the request
-     * @return A ${@link Response} object
-     */
-    public Response executePostRequest(String uri, Map<String, String> queryParams, Object body) {
-        final String ctx = CLASSNAME + ".executePostRequest";
-        try {
-            return restClient.post(uri, queryParams, body);
+            switch (method) {
+                case GET:
+                    return restClient.get(uri, queryParams);
+                case PUT:
+                    return restClient.put(uri, queryParams, body);
+                case POST:
+                    return restClient.post(uri, queryParams, body);
+                default:
+                    throw new IllegalArgumentException("Unsupported HTTP method");
+            }
         } catch (Exception e) {
             throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
         }

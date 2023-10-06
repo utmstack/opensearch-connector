@@ -1,4 +1,4 @@
-package com.atlasinside.opensearch.types;
+package com.utmstack.opensearch_connector.types;
 
 import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 

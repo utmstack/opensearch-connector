@@ -1,7 +1,7 @@
 name: Publish this application as a package to GitHub Packages
 on:
   release:
-    types: [ created ]
+    types: [ published ]
 jobs:
   publish:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-package com.atlasinside.opensearch.enums;
+package com.utmstack.opensearch_connector.enums;
 
 public enum TermOrder {
     Key("_key"),

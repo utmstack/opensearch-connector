@@ -1,6 +1,6 @@
-package com.atlasinside.opensearch.types;
+package com.utmstack.opensearch_connector.types;
 
-import com.atlasinside.opensearch.enums.IndexSortableProperty;
+import com.utmstack.opensearch_connector.enums.IndexSortableProperty;
 import org.apache.commons.collections4.MapUtils;
 import org.opensearch.client.opensearch._types.SortOrder;
 

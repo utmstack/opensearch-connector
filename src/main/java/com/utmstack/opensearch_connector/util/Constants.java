@@ -1,4 +1,4 @@
-package com.atlasinside.opensearch.util;
+package com.utmstack.opensearch_connector.util;
 
 
 public class Constants {
