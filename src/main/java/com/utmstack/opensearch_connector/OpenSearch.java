@@ -175,7 +175,9 @@ public class OpenSearch {
             List<BucketAggregation> list = TermAggregateParser.parse(response.aggregations().get(AGG_NAME));
             if (CollectionUtils.isEmpty(list))
                 return Collections.emptyMap();
-            return list.stream().collect(Collectors.toMap(BucketAggregation::getKey, BucketAggregation::getDocCount));
+
+            return list.stream().collect(Collectors.toMap(BucketAggregation::getKey, BucketAggregation::getDocCount, (a, b) -> b, LinkedHashMap::new));
+
         } catch (Exception e) {
             throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
