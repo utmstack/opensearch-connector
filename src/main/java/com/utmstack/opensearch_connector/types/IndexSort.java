@@ -42,7 +42,7 @@ public class IndexSort {
         if (MapUtils.isEmpty(orders))
             return "";
         return orders.entrySet().stream()
-                .map(e -> e.getKey() + ":" + e.getValue().jsonValue())
+                .map(e -> e.getKey().getJsonValue() + ":" + e.getValue().jsonValue())
                 .collect(Collectors.joining(","));
     }
 
