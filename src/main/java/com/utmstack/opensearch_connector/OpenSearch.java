@@ -1,5 +1,6 @@
 package com.utmstack.opensearch_connector;
 
+import com.google.gson.Gson;
 import com.utmstack.opensearch_connector.clients.OpensearchClient;
 import com.utmstack.opensearch_connector.clients.RestClient;
 import com.utmstack.opensearch_connector.enums.HttpMethod;
@@ -7,10 +8,9 @@ import com.utmstack.opensearch_connector.enums.HttpScheme;
 import com.utmstack.opensearch_connector.enums.TermOrder;
 import com.utmstack.opensearch_connector.exceptions.OpenSearchException;
 import com.utmstack.opensearch_connector.parsers.TermAggregateParser;
-import com.utmstack.opensearch_connector.types.BucketAggregation;
-import com.utmstack.opensearch_connector.types.ElasticCluster;
-import com.utmstack.opensearch_connector.types.IndexSort;
+import com.utmstack.opensearch_connector.types.*;
 import com.utmstack.opensearch_connector.util.IndexUtils;
+import com.utmstack.opensearch_connector.util.SqlResponseMapper;
 import okhttp3.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -30,6 +30,8 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.UpdateByQueryResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +39,7 @@ public class OpenSearch {
     private static final String CLASSNAME = "OpenSearch";
     private final OpenSearchClient client;
     private final RestClient restClient;
+    private final Gson GSON = new Gson();
 
     private OpenSearch(OpenSearchClient client, RestClient restClient) {
         this.client = client;
@@ -318,6 +321,59 @@ public class OpenSearch {
             } catch (Exception e) {
                 throw new RuntimeException(ctx + ": " + e.getLocalizedMessage());
             }
+        }
+    }
+
+    /**
+     * Executes a SQL query against OpenSearch and returns the results mapped to the specified type.
+     *
+     * @param <T>            The type of object to map the search results into.
+     * @param request        The {@link SqlQueryRequest} containing the SQL query and optional parameters
+     *                       (e.g., fetch_size for pagination).
+     * @param responseType   The class type to map each row of the SQL response into.
+     * @return A {@link SearchSqlResponse} containing the mapped results, size, and total count.
+     * @throws OpenSearchException If the HTTP request fails, the response is unsuccessful,
+     *                             the response body is null, or if JSON parsing fails.
+     */
+    public <T> SearchSqlResponse<T> searchBySqlQuery(SqlQueryRequest request, Class<T> responseType)
+            throws OpenSearchException {
+        final String ctx = CLASSNAME + ".searchBySqlQuery";
+        try {
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("query", request.getQuery());
+
+            if (request.getFetchSize() != null) {
+                requestBody.put("fetch_size", request.getFetchSize());
+            }
+
+            try (Response response = restClient.post("/_plugins/_sql", null, requestBody)) {
+                if (!response.isSuccessful()) {
+                    throw new OpenSearchException(ctx + ": HTTP " + response.code() + " - " + response.message());
+                }
+
+                String jsonResponse = Optional.ofNullable(response.body())
+                        .map(rb -> {
+                            try {
+                                return rb.string();
+                            } catch (IOException e) {
+                                throw new UncheckedIOException(e);
+                            }
+                        })
+                        .orElseThrow(() -> new OpenSearchException(ctx + ": Response body is null"));
+
+                SqlQueryResponse sqlQueryResponse = GSON.fromJson(jsonResponse, SqlQueryResponse.class);
+                List<Map<String, Object>> rows = SqlResponseMapper.toKeyValue(sqlQueryResponse);
+
+                List<T> mappedRows = rows.stream()
+                        .map(row -> GSON.fromJson(GSON.toJsonTree(row), responseType))
+                        .collect(Collectors.toList());
+
+                return new SearchSqlResponse<>(mappedRows, sqlQueryResponse.getSize(), sqlQueryResponse.getTotal());
+            }
+        } catch (OpenSearchException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new OpenSearchException(ctx + ": " + e.getLocalizedMessage());
         }
     }
 }
