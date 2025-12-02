@@ -368,7 +368,7 @@ public class OpenSearch {
                         .map(row -> GSON.fromJson(GSON.toJsonTree(row), responseType))
                         .collect(Collectors.toList());
 
-                return new SearchSqlResponse<>(mappedRows, sqlQueryResponse.getSize(), sqlQueryResponse.getTotal());
+                return new SearchSqlResponse<>(mappedRows, sqlQueryResponse.getTotal(), sqlQueryResponse.getSize());
             }
         } catch (OpenSearchException e) {
             throw e;
