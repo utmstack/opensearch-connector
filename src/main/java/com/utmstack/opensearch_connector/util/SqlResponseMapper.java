@@ -1,6 +1,5 @@
 package com.utmstack.opensearch_connector.util;
 
-import com.utmstack.opensearch_connector.types.SqlColumn;
 import com.utmstack.opensearch_connector.types.SqlQueryResponse;
 
 import java.util.LinkedHashMap;
@@ -13,7 +12,7 @@ public class SqlResponseMapper {
     public static List<Map<String, Object>> toKeyValue(SqlQueryResponse response) {
         List<String> columnNames = response.getSchema()
                 .stream()
-                .map(SqlColumn::getName)
+                .map(col -> (col.getAlias() != null && !col.getAlias().isEmpty()) ? col.getAlias() : col.getName())
                 .collect(Collectors.toList());
 
         return response.getDatarows().stream()

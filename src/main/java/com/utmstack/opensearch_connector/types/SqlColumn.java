@@ -2,15 +2,24 @@ package com.utmstack.opensearch_connector.types;
 
 public class SqlColumn {
     private String name;
+    private String alias;
     private String type;
 
     public SqlColumn() {}
 
-    public SqlColumn(String name, String type) {
+    public SqlColumn(String name, String alias, String type) {
         this.name = name;
+        this.alias = alias;
         this.type = type;
     }
 
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
 
     public String getName() {
         return name;
