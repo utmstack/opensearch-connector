@@ -8,8 +8,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.jetbrains.annotations.NotNull;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -25,10 +29,31 @@ public class RestClient {
         BASEURL = host.toString();
         USER = user;
         PASS = password;
-        client = new OkHttpClient.Builder()
-                .addInterceptor(new RequestHandlerInterceptor())
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build();
+        client = createTrustAllClient();
+    }
+
+    private OkHttpClient createTrustAllClient() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                }
+            };
+
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+
+            return new OkHttpClient.Builder()
+                    .sslSocketFactory(sslContext.getSocketFactory(), (X509TrustManager) trustAllCerts[0])
+                    .hostnameVerifier((hostname, session) -> true)
+                    .addInterceptor(new RequestHandlerInterceptor())
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create SSL client: " + e.getMessage());
+        }
     }
 
     /**
